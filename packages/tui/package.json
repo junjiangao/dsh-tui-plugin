@@ -1,0 +1,80 @@
+{
+  "name": "@deepseek-ai/dsh-tui",
+  "description": "Interactive pi-tui terminal front door for DeepSeek Harness agents",
+  "version": "0.1.0-rc.5",
+  "publishConfig": {
+    "access": "public"
+  },
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/types/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./invariant": {
+      "types": "./lib/types/invariant.d.ts",
+      "default": "./lib/invariant.js"
+    },
+    "./src/*": "./src/*",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib/index.js",
+    "lib/invariant.js",
+    "lib/types/**/*.d.ts"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@earendil-works/pi-tui": "0.80.7",
+    "diff": "^9.0.0",
+    "saxes": "6.0.0"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "^0.1.0-rc.5",
+    "@deepseek-ai/schemastery": "^0.1.0-rc.5",
+    "@deepseek-ai/dsh-compaction": "^0.1.0-rc.5",
+    "@deepseek-ai/dsh-commands": "^0.1.0-rc.5",
+    "@deepseek-ai/dsh-goal": "^0.1.0-rc.5",
+    "@deepseek-ai/dsh-invariants": "^0.1.0-rc.5",
+    "@deepseek-ai/dsh-session-persistence": "^0.1.0-rc.5",
+    "@deepseek-ai/dsh-session-projection": "^0.1.0-rc.5",
+    "@deepseek-ai/dsh-session-projection-cache": "^0.1.0-rc.5",
+    "@deepseek-ai/dsh-session-query": "^0.1.0-rc.5",
+    "@deepseek-ai/dsh-session-reference": "^0.1.0-rc.5",
+    "@deepseek-ai/dsh-session-title": "^0.1.0-rc.5",
+    "@deepseek-ai/dsh-subprocess": "^0.1.0-rc.5",
+    "@deepseek-ai/dsh-user-approval": "^0.1.0-rc.5",
+    "@deepseek-ai/dsh-user-questions": "^0.1.0-rc.5"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "^0.1.0-rc.5",
+    "@deepseek-ai/cordis-plugin-loader": "^0.1.0-rc.5",
+    "@deepseek-ai/dsh-agent": "^0.1.0-rc.5",
+    "@deepseek-ai/dsh-agent-loop": "^0.1.0-rc.5",
+    "@deepseek-ai/dsh-command-goal": "^0.1.0-rc.5",
+    "@deepseek-ai/dsh-commands": "^0.1.0-rc.5",
+    "@deepseek-ai/dsh-compaction": "^0.1.0-rc.5",
+    "@deepseek-ai/dsh-goal": "^0.1.0-rc.5",
+    "@deepseek-ai/dsh-invariants": "^0.1.0-rc.5",
+    "@deepseek-ai/dsh-llm": "^0.1.0-rc.5",
+    "@deepseek-ai/dsh-session": "^0.1.0-rc.5",
+    "@deepseek-ai/dsh-session-persistence": "^0.1.0-rc.5",
+    "@deepseek-ai/dsh-session-projection": "^0.1.0-rc.5",
+    "@deepseek-ai/dsh-session-projection-cache": "^0.1.0-rc.5",
+    "@deepseek-ai/dsh-session-query": "^0.1.0-rc.5",
+    "@deepseek-ai/dsh-session-reference": "^0.1.0-rc.5",
+    "@deepseek-ai/dsh-session-title": "^0.1.0-rc.5",
+    "@deepseek-ai/dsh-subprocess": "^0.1.0-rc.5",
+    "@deepseek-ai/dsh-system-prompt": "^0.1.0-rc.5",
+    "@deepseek-ai/dsh-token-meter": "^0.1.0-rc.5",
+    "@deepseek-ai/dsh-tools": "^0.1.0-rc.5",
+    "@deepseek-ai/dsh-user-approval": "^0.1.0-rc.5",
+    "@deepseek-ai/dsh-user-questions": "^0.1.0-rc.5",
+    "@deepseek-ai/schemastery": "^0.1.0-rc.5",
+    "@types/node": "^22.0.0",
+    "@xterm/headless": "^5.5.0",
+    "vitest": "^3.2.4"
+  }
+}

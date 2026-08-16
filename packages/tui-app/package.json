@@ -1,0 +1,63 @@
+{
+  "name": "@deepseek-ai/dsh-tui-app",
+  "description": "The dsh terminal bundle: the interactive pi-tui patch layer over dsh-base plus the startup glue plugin (flag parsing, session identity)",
+  "version": "0.1.0-rc.5",
+  "publishConfig": {
+    "access": "public"
+  },
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/types/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./startup": {
+      "types": "./lib/types/startup.d.ts",
+      "default": "./lib/startup.js"
+    },
+    "./invariant": {
+      "types": "./lib/types/invariant.d.ts",
+      "default": "./lib/invariant.js"
+    },
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./src/*": "./src/*",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib/index.js",
+    "lib/invariant.js",
+    "lib/startup.js",
+    "cordis.patch.yml",
+    "lib/types/**/*.d.ts"
+  ],
+  "license": "MIT",
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "dependencies": {
+    "commander": "^15.0.0"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "^0.1.0-rc.5",
+    "@deepseek-ai/dsh-cmdline": "^0.1.0-rc.5",
+    "@deepseek-ai/dsh-invariants": "^0.1.0-rc.5",
+    "@deepseek-ai/dsh-session-projection-cache": "^0.1.0-rc.5",
+    "@deepseek-ai/dsh-session-reference": "^0.1.0-rc.5",
+    "@deepseek-ai/dsh-storage": "^0.1.0-rc.5",
+    "@deepseek-ai/dsh-storage-domain": "^0.1.0-rc.5",
+    "@deepseek-ai/dsh-storage-json": "^0.1.0-rc.5",
+    "@deepseek-ai/dsh-tool-ask-user": "^0.1.0-rc.5",
+    "@deepseek-ai/dsh-tui": "^0.1.0-rc.5"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "^0.1.0-rc.5",
+    "@deepseek-ai/cordis-plugin-loader": "^0.1.0-rc.5",
+    "@deepseek-ai/dsh-invariants": "^0.1.0-rc.5",
+    "@deepseek-ai/dsh-cmdline": "^0.1.0-rc.5",
+    "@deepseek-ai/dsh-tui": "^0.1.0-rc.5"
+  }
+}

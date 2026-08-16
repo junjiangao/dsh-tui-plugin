@@ -1,0 +1,56 @@
+terminal 96x36 buffer=normal length=36 base=0 viewport=0
+lifecycle started=1 stopped=0 progress=inactive
+title "DSH snapshot"
+cursor hidden column=7 viewportRow=26 bufferRow=26
+viewport
+0| " DEEPSEEK HARNESS"
+  style 1-8 fg=bright-magenta bold
+  style 10-16 bold
+1| " Snapshot agent ready."
+  style 1-21 dim
+2| " main-session"
+  style 1-12 dim
+3| <blank>
+4| "goal: active · 0/256 · armed                                                                    "
+  style 0-27 dim
+5| <blank>
+6| "Goal created                                                                                    "
+  style 0-95 dim
+7| "Status: active                                                                                  "
+  style 0-95 dim
+8| "Objective: do the thing                                                                         "
+  style 0-95 dim
+9| "Rounds: 0/256                                                                                   "
+  style 0-95 dim
+10| "Activation: armed                                                                               "
+  style 0-95 dim
+11| "                                                                                                "
+  style 0-95 dim
+12| "Commands: /goal edit <objective>, /goal pause, /goal clear                                      "
+  style 0-57 dim
+13| <blank>
+14| "goal: paused · 0/256 · disarmed                                                                 "
+  style 0-30 dim
+15| <blank>
+16| "Goal paused                                                                                     "
+  style 0-95 dim
+17| "Status: paused                                                                                  "
+  style 0-95 dim
+18| "Objective: do the thing                                                                         "
+  style 0-95 dim
+19| "Rounds: 0/256                                                                                   "
+  style 0-95 dim
+20| "Activation: disarmed                                                                            "
+  style 0-95 dim
+21| "                                                                                                "
+  style 0-95 dim
+22| "Commands: /goal edit <objective>, /goal resume, /goal clear                                     "
+  style 0-58 dim
+23| <blank>
+24| "/workspace/project  idle                                                                        "
+  style 0-23 dim
+25| "idle · ↑0 ↓0 · model deepseek-v4-flash · tools collapsed                                        "
+  style 0-55 dim
+26| " dsh >                                                                                          "
+  style 7-7 inverse
+27-35| <blank>

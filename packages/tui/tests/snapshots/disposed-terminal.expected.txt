@@ -1,0 +1,30 @@
+terminal 96x36 buffer=normal length=36 base=0 viewport=0
+lifecycle started=1 stopped=1 progress=inactive
+title "DSH snapshot"
+cursor visible column=0 viewportRow=15 bufferRow=15
+buffer
+0| " DEEPSEEK HARNESS"
+  style 1-8 fg=bright-magenta bold
+  style 10-16 bold
+1| " Snapshot agent ready."
+  style 1-21 dim
+2| " main-session"
+  style 1-12 dim
+3| <blank>
+4| "You                                                                                             "
+  style 0-2 fg=bright-magenta bold underline
+5| "One turn.                                                                                       "
+6| <blank>
+7| "Assistant                                                                                       "
+  style 0-8 fg=bright-magenta bold underline
+8| "Done.                                                                                           "
+9| "Model wait 0.0s                                                                                 "
+  style 0-14 dim
+10| <blank>
+11| "/workspace/project  idle                                                                        "
+  style 0-23 dim
+12| "idle · ↑0 ↓0 · model deepseek-v4-flash · tools collapsed                                        "
+  style 0-55 dim
+13| " dsh >                                                                                          "
+  style 7-7 inverse
+14-35| <blank>

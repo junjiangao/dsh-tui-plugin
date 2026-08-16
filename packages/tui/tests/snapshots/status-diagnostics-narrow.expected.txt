@@ -1,0 +1,102 @@
+terminal 56x36 buffer=normal length=36 base=0 viewport=0
+lifecycle started=1 stopped=0 progress=inactive
+title "DSH snapshot"
+cursor hidden column=7 viewportRow=30 bufferRow=30
+buffer
+0| " DEEPSEEK HARNESS"
+  style 1-8 fg=bright-magenta bold
+  style 10-16 bold
+1| " Snapshot agent ready."
+  style 1-21 dim
+2| " main-session"
+  style 1-12 dim
+3| <blank>
+4| "Assistant                                               "
+  style 0-8 fg=bright-magenta bold underline
+5| "Model wait 0.0s                                         "
+  style 0-14 dim
+6| <blank>
+7| "╭─ Session status ─────────────────────────────────────╮"
+  style 0-2 dim
+  style 3-16 fg=bright-magenta bold
+  style 17-55 dim
+8| "│  Session:    main-session                            │"
+  style 0-0 dim
+  style 3-12 dim
+  style 55-55 dim
+9| "│  Title:      untitled                                │"
+  style 0-0 dim
+  style 3-12 dim
+  style 55-55 dim
+10| "│  Directory:  /workspace/project                      │"
+  style 0-0 dim
+  style 3-12 dim
+  style 55-55 dim
+11| "│  Model:      deepseek-official/deepseek-v4-pro       │"
+  style 0-0 dim
+  style 3-12 dim
+  style 55-55 dim
+12| "│              (effort low; reasoning blocks shown)    │"
+  style 0-0 dim
+  style 15-50 dim
+  style 55-55 dim
+13| "│                                                      │"
+  style 0-0 dim
+  style 55-55 dim
+14| "│  Agent:      idle · 2 events · 0 turns · 0 steps · 0 │"
+  style 0-0 dim
+  style 3-12 dim
+  style 55-55 dim
+15| "│              tool calls                              │"
+  style 0-0 dim
+  style 55-55 dim
+16| "│                                                      │"
+  style 0-0 dim
+  style 55-55 dim
+17| "│  Tokens:     1,250 input + 340 output                │"
+  style 0-0 dim
+  style 3-12 dim
+  style 55-55 dim
+18| "│  KV cache:   [███████████░░░░░] 67% hit (3,000 read  │"
+  style 0-0 dim
+  style 3-12 dim
+  style 15-15 dim
+  style 16-26 fg=bright-magenta
+  style 27-32 dim
+  style 55-55 dim
+19| "│              + 250 write)                            │"
+  style 0-0 dim
+  style 55-55 dim
+20| "│  Context:    [█████░░░░░░░░░░░] 33% used (42,000 /   │"
+  style 0-0 dim
+  style 3-12 dim
+  style 15-15 dim
+  style 16-20 fg=bright-magenta
+  style 21-32 dim
+  style 55-55 dim
+21| "│              128,000)                                │"
+  style 0-0 dim
+  style 55-55 dim
+22| "│                                                      │"
+  style 0-0 dim
+  style 55-55 dim
+23| "│  Created:    2026-07-21 06:32:06 UTC                 │"
+  style 0-0 dim
+  style 3-12 dim
+  style 55-55 dim
+24| "│  Active:     2026-07-21 06:32:06 UTC                 │"
+  style 0-0 dim
+  style 3-12 dim
+  style 55-55 dim
+25| "╰──────────────────────────────────────────────────────╯"
+  style 0-55 dim
+26| <blank>
+27| "/workspace/project  idle                                "
+  style 0-23 dim
+28| "idle · ↑1.3k ↓340 · cache 67% · 33% context · model     "
+  style 0-55 dim
+29| "deepseek-v4-pro low · tools collapsed                   "
+  style 0-36 dim
+30| " dsh >                                                  "
+  style 7-7 inverse
+31-35| <blank>

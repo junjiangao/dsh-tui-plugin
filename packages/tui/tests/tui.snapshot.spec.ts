@@ -102,7 +102,7 @@ describe('TUI semantic snapshots', () => {
   it('streaming', async () => {
     // Pin the wall clock so event times, the live timing footer, and the
     // completion timestamp are deterministic in the snapshot.
-    let clock = new Date(2026, 6, 21, 14, 32, 6).getTime()
+    let clock = new Date(Date.UTC(2026, 6, 21, 6, 32, 6)).getTime()
     const nowSpy = vi.spyOn(Date, 'now').mockImplementation(() => clock)
     const harness = await setupSnapshot()
     await renderAfter(harness, () => {
@@ -156,7 +156,7 @@ describe('TUI semantic snapshots', () => {
 
   it('goal-commands', async () => {
     // Pin the wall clock so goal timestamps are deterministic.
-    const nowSpy = vi.spyOn(Date, 'now').mockImplementation(() => new Date(2026, 6, 21, 14, 32, 6).getTime())
+    const nowSpy = vi.spyOn(Date, 'now').mockImplementation(() => new Date(Date.UTC(2026, 6, 21, 6, 32, 6)).getTime())
     const harness = await setupSnapshot()
     // The goal domain and its /goal producer compose after the channel mounts,
     // exactly as the bundle rows load them.
@@ -180,7 +180,7 @@ describe('TUI semantic snapshots', () => {
   })
 
   it('model-selector', async () => {
-    const nowSpy = vi.spyOn(Date, 'now').mockImplementation(() => new Date(2026, 6, 21, 14, 32, 6).getTime())
+    const nowSpy = vi.spyOn(Date, 'now').mockImplementation(() => new Date(Date.UTC(2026, 6, 21, 6, 32, 6)).getTime())
     const harness = await setupSnapshot()
     await renderAfter(harness, () => { harness.terminal.send('/model') })
     await renderAfter(harness, () => { harness.terminal.send('\r') })
@@ -196,7 +196,7 @@ describe('TUI semantic snapshots', () => {
   })
 
   it('resume-sessions', async () => {
-    const nowSpy = vi.spyOn(Date, 'now').mockImplementation(() => new Date(2026, 6, 21, 14, 32, 6).getTime())
+    const nowSpy = vi.spyOn(Date, 'now').mockImplementation(() => new Date(Date.UTC(2026, 6, 21, 6, 32, 6)).getTime())
     const harness = await setupSnapshot()
     const gate = Promise.withResolvers<undefined>()
     harness.ctx.provide('sessionQuery', {
@@ -229,7 +229,7 @@ describe('TUI semantic snapshots', () => {
   })
 
   it('file-autocomplete', async () => {
-    const nowSpy = vi.spyOn(Date, 'now').mockImplementation(() => new Date(2026, 6, 21, 14, 32, 6).getTime())
+    const nowSpy = vi.spyOn(Date, 'now').mockImplementation(() => new Date(Date.UTC(2026, 6, 21, 6, 32, 6)).getTime())
     const root = await mkdtemp(join(tmpdir(), 'dsh-tui-snapshot-files-'))
     const harness = await setupSnapshot({
       cwd: root,
@@ -244,7 +244,7 @@ describe('TUI semantic snapshots', () => {
   })
 
   it('session-reference', async () => {
-    const nowSpy = vi.spyOn(Date, 'now').mockImplementation(() => new Date(2026, 6, 21, 14, 32, 6).getTime())
+    const nowSpy = vi.spyOn(Date, 'now').mockImplementation(() => new Date(Date.UTC(2026, 6, 21, 6, 32, 6)).getTime())
     const harness = await setupSnapshot({
       sessionReferenceResolver: {
         listCandidates: async () => [],
@@ -287,7 +287,7 @@ describe('TUI semantic snapshots', () => {
   })
 
   it('status-diagnostics', async () => {
-    const nowSpy = vi.spyOn(Date, 'now').mockImplementation(() => new Date(2026, 6, 21, 14, 32, 6).getTime())
+    const nowSpy = vi.spyOn(Date, 'now').mockImplementation(() => new Date(Date.UTC(2026, 6, 21, 6, 32, 6)).getTime())
     const harness = await setupSnapshot({
       tokenMeter: { measure: () => ({ totalTokens: 42_000 }) },
       llm: {

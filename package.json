@@ -2,6 +2,7 @@
   "name": "dsh-tui-plugin",
   "private": true,
   "version": "0.0.0",
+  "packageManager": "pnpm@11.3.0",
   "description": "Standalone dsh TUI plugin project, extracted from the deepseek-harness worktree (not merged upstream)",
   "repository": {
     "type": "git",

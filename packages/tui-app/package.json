@@ -33,6 +33,23 @@
     "lib/types/**/*.d.ts"
   ],
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/junjiangao/dsh-tui-plugin.git",
+    "directory": "packages/tui-app"
+  },
+  "keywords": [
+    "tui",
+    "terminal",
+    "bundle",
+    "deepseek"
+  ],
+  "engines": {
+    "node": "^22.19.0 || >=24.0.0"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json && tsdown"
+  },
   "dsh": {
     "bundle": {
       "patch": "./cordis.patch.yml"
@@ -55,6 +72,7 @@
   },
   "devDependencies": {
     "@deepseek-ai/cordis": "^0.1.0-rc.5",
+    "@deepseek-ai/cordis-plugin-include": "^1.0.6",
     "@deepseek-ai/cordis-plugin-loader": "^0.1.0-rc.5",
     "@deepseek-ai/dsh-invariants": "^0.1.0-rc.5",
     "@deepseek-ai/dsh-cmdline": "^0.1.0-rc.5",

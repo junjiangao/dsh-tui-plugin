@@ -2,11 +2,11 @@
 
 [English](README.md) | 中文
 
-dsh 终端组合包：在 [`dsh-base`](../base/README.md) 之上的交互式 pi-tui patch 层，外加启动粘合插件。本包的 [`cordis.patch.yml`](cordis.patch.yml) 就是 `tui` profile 自身的 overlay：覆盖编码 persona、接通工具展示模式、插入存储栈（/resume 标题的持久化 checkpoint 缓存）、会话引用提供方、键盘驱动的 `ask_user_question` 工具、`tui-startup` 参数提供方，以及 `tui` 行本身。
+dsh 终端组合包：在 `dsh-base` 组合包（宿主提供）之上的交互式 pi-tui patch 层，外加启动粘合插件。本包的 [`cordis.patch.yml`](cordis.patch.yml) 就是 `tui` profile 自身的 overlay：覆盖编码 persona、接通工具展示模式、插入存储栈（/resume 标题的持久化 checkpoint 缓存）、会话引用提供方、键盘驱动的 `ask_user_question` 工具、`tui-startup` 参数提供方，以及 `tui` 行本身。
 
 ## 启动
 
-`tui-startup` 插件（[`src/startup.ts`](src/startup.ts)）注入 `ctx.cmdlineArgs`（[dsh-cmdline](../../boot/cmdline/README.md)），解析 `dsh --profile tui` 参数族，并提供不可变的 `tuiStartup` 服务；需要它的行注入该服务并从惰性配置读取，因此 `--help`（不提供任何值）永远不会挂载终端。
+`tui-startup` 插件（[`src/startup.ts`](src/startup.ts)）注入 `ctx.cmdlineArgs`（宿主提供的 `dsh-cmdline`），解析 `dsh --profile tui` 参数族，并提供不可变的 `tuiStartup` 服务；需要它的行注入该服务并从惰性配置读取，因此 `--help`（不提供任何值）永远不会挂载终端。
 
 | 参数 | 效果 |
 |---|---|

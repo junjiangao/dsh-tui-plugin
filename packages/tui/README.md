@@ -2,7 +2,7 @@
 
 English | [中文](README.zh.md)
 
-The interactive full-screen terminal front door for DeepSeek Harness agents. Mounted by the [`@deepseek-ai/dsh-tui-app`](../../bundle/tui-app/README.md) bundle as the `tui` row, the plugin's `apply` fails loud when the process has no TTY, mounts the real terminal through the `TuiRuntime` seam, and owns the keyboard, the screen, and the root agent's lifetime until the operator exits or the process is torn down.
+The interactive full-screen terminal front door for DeepSeek Harness agents. Mounted by the [`@deepseek-ai/dsh-tui-app`](../tui-app/README.md) bundle as the `tui` row, the plugin's `apply` fails loud when the process has no TTY, mounts the real terminal through the `TuiRuntime` seam, and owns the keyboard, the screen, and the root agent's lifetime until the operator exits or the process is torn down.
 
 ## Surface
 
@@ -26,17 +26,16 @@ The interactive full-screen terminal front door for DeepSeek Harness agents. Mou
 | `maxQuestionOptions` / `maxModelOptions` / `maxResumeOptions` | number | `8` | Picker caps. |
 | `resumeScanConcurrency` | number | `4` | Bounded title-scan parallelism for /resume. |
 | `questionDialogWidth` / `questionDialogMaxHeight` | number | `200` / `20` | Question dialog geometry. |
-| `modelDialogWidth` / `modelDialogMaxHeight` / `detailsDialogWidth` | number | `76` / `20` / `72` | Picker geometry. |
-| `fileSearchMaxResults` / `fileSearchMaxEntries` | number | `20` / `2000` | Bounded `@`-completion index. |
+| `modelDialogWidth` / `modelDialogMaxHeight` | number | `76` / `20` | Model picker geometry. |
+| `fileSearchMaxResults` / `fileSearchMaxEntries` | number | `20` / `10_000` | Bounded `@`-completion index. |
 | `fileSearchExcludedDirectories` | string[] | `['node_modules', '.git', …]` | Completion index exclusions. |
 | `showHardwareCursor` | boolean | `false` | Hardware cursor instead of the Pi text cursor. |
-| `frameBudgetMs` | number | `16` | Declared render-frame budget (Pi's own 16 ms throttle covers the same target). |
 | `maxInitialMessages` | number | `200` | User messages in the initial transcript window. |
 | `historyPageSize` | number | `100` | User messages loaded per /more page. |
 | `transcriptResidentMaxBytes` | number | `4194304` | Resident transcript byte budget. |
 | `cardCacheEntries` | number | `2000` | Resident tool/context card budget. |
 | `statusIntervalMs` | number | `500` | Footer elapsed-clock tick interval while running. |
-| `theme` | object | `{color: true, …}` | `color`, `truecolor`, prompt strings. |
+| `theme` | object | `{color: true, …}` | `color`, `truecolor`. |
 | `title` | string | `'DeepSeek Harness'` | Fallback terminal title. |
 
 ## Model Experience

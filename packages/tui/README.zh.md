@@ -2,7 +2,7 @@
 
 [English](README.md) | 中文
 
-DeepSeek Harness 智能体的交互式全屏终端前门。由 [`@deepseek-ai/dsh-tui-app`](../../bundle/tui-app/README.md) 组合包以 `tui` 行挂载；插件的 `apply` 在进程没有 TTY 时明确报错，通过 `TuiRuntime` 接缝挂载真实终端，并持有键盘、屏幕与根智能体的生命周期，直到操作者退出或进程被拆除。
+DeepSeek Harness 智能体的交互式全屏终端前门。由 [`@deepseek-ai/dsh-tui-app`](../tui-app/README.md) 组合包以 `tui` 行挂载；插件的 `apply` 在进程没有 TTY 时明确报错，通过 `TuiRuntime` 接缝挂载真实终端，并持有键盘、屏幕与根智能体的生命周期，直到操作者退出或进程被拆除。
 
 ## 界面
 
@@ -26,17 +26,16 @@ DeepSeek Harness 智能体的交互式全屏终端前门。由 [`@deepseek-ai/ds
 | `maxQuestionOptions` / `maxModelOptions` / `maxResumeOptions` | number | `8` | 选择器上限。 |
 | `resumeScanConcurrency` | number | `4` | /resume 标题扫描的有界并行度。 |
 | `questionDialogWidth` / `questionDialogMaxHeight` | number | `200` / `20` | 问题对话框几何。 |
-| `modelDialogWidth` / `modelDialogMaxHeight` / `detailsDialogWidth` | number | `76` / `20` / `72` | 选择器几何。 |
-| `fileSearchMaxResults` / `fileSearchMaxEntries` | number | `20` / `2000` | `@` 补全索引边界。 |
+| `modelDialogWidth` / `modelDialogMaxHeight` | number | `76` / `20` | 模型选择器几何。 |
+| `fileSearchMaxResults` / `fileSearchMaxEntries` | number | `20` / `10_000` | `@` 补全索引边界。 |
 | `fileSearchExcludedDirectories` | string[] | `['node_modules', '.git', …]` | 补全索引排除项。 |
 | `showHardwareCursor` | boolean | `false` | 使用硬件光标替代 Pi 文本光标。 |
-| `frameBudgetMs` | number | `16` | 声明的渲染帧预算（Pi 自身的 16 ms 节流已覆盖同一目标）。 |
 | `maxInitialMessages` | number | `200` | 初始 transcript 窗口内的用户消息数。 |
 | `historyPageSize` | number | `100` | /more 每页加载的用户消息数。 |
 | `transcriptResidentMaxBytes` | number | `4194304` | 驻留 transcript 字节预算。 |
 | `cardCacheEntries` | number | `2000` | 驻留工具/上下文卡预算。 |
 | `statusIntervalMs` | number | `500` | 运行期间页脚时钟的跳动间隔。 |
-| `theme` | object | `{color: true, …}` | `color`、`truecolor`、提示符字符串。 |
+| `theme` | object | `{color: true, …}` | `color`、`truecolor`。 |
 | `title` | string | `'DeepSeek Harness'` | 回退终端标题。 |
 
 ## 模型体验

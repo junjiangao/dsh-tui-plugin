@@ -77,7 +77,7 @@ import {
   runningPhaseGlyph,
   type StepPosition,
 } from './chat/timing.ts'
-import { isCompactCheckpoint, sessionReferenceCard } from './chat/helpers.ts'
+import { formatCwd, gitBranch, isCompactCheckpoint, sessionReferenceCard } from './chat/helpers.ts'
 import { createQuestionQueue, type QuestionQueue } from './chat/questions.ts'
 import { installApprovalAnswerer } from './chat/approval.ts'
 import { createCommandController, goalStatusText, type CommandController } from './chat/commands.ts'
@@ -199,7 +199,17 @@ export function createTuiChat(
   const questionContainer = new Container()
   const cwd = agent.session.header.cwd ?? process.cwd()
   const formattedCwd = displayText(runtime.formatCwd?.(cwd) ?? cwd)
-  const branch = runtime.gitBranch?.(cwd)
+  // The Git branch resolves off the event loop; the first frame ships without
+  // it and the prompt line fills in (one re-render) when the query settles.
+  let branch: string | undefined
+  const branchQuery = runtime.gitBranch?.(cwd)
+  if (branchQuery !== undefined) {
+    void branchQuery.then((value) => {
+      if (disposed) return
+      branch = value
+      requestRender()
+    })
+  }
   // Bounded workspace index for @path completions; invalidated whenever a tool
   // result lands so new files become reachable without a restart.
   const fileSearch = new WorkspaceFileSearch(cwd, {
@@ -322,7 +332,6 @@ export function createTuiChat(
   // append helpers because the mount replay charges rows immediately.
   const residentOrder: Component[] = []
   const residentBytesBy = new Map<Component, number>()
-  const residentCards = new Set<Component>()
   let residentBytes = 0
 
   const evictComponent = (component: Component): void => {
@@ -341,7 +350,6 @@ export function createTuiChat(
       /* v8 ignore stop */
     } else if (component instanceof ToolCardComponent) {
       allToolCards.delete(component)
-      contextCards.delete(component as never)
     } else if (component instanceof ContextCardComponent) {
       contextCards.delete(component)
     }
@@ -380,7 +388,6 @@ export function createTuiChat(
   const accountResident = (component: Component, bytes: number): void => {
     residentOrder.push(component)
     residentBytesBy.set(component, bytes)
-    residentCards.add(component)
     residentBytes += bytes
     evictResident()
   }
@@ -395,7 +402,6 @@ export function createTuiChat(
     /* v8 ignore next -- accountResident always records the charge */
     residentBytes = Math.max(0, residentBytes - (residentBytesBy.get(component) ?? 0))
     residentBytesBy.delete(component)
-    residentCards.delete(component)
   }
 
   /** Append a transcript notice row (info/warning/error tone). */
@@ -1139,7 +1145,6 @@ export function createTuiChat(
       // /clear empties the view and its resident ledger together.
       residentOrder.length = 0
       residentBytesBy.clear()
-      residentCards.clear()
       residentBytes = 0
       assistantSteps.clear()
       allToolCards.clear()
@@ -1312,12 +1317,15 @@ export function apply(ctx: Context, config: Config): void {
   // boundary from COLORTERM; an explicit theme value still wins.
   const truecolor = config.theme?.truecolor ?? ['truecolor', '24bit'].includes(process.env.COLORTERM ?? '')
   mountTui(ctx, {
-    /* oxlint-disable-next-line no-misused-spread -- Config is a plain interface; the rule misclassifies the plugin config parameter */
     ...config,
     theme: { ...config.theme, truecolor },
   }, {
     terminal: new ProcessTerminal(),
     exit: (code) => { disposeRootAndExit(ctx, code, (status) => { process.exit(status) }) },
+    // Production defaults for the prompt-context overrides: `~`-abbreviated
+    // cwd and the async Git branch probe from the chat helpers.
+    formatCwd,
+    gitBranch,
   })
 }
 /* v8 ignore stop */

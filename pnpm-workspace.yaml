@@ -1,2 +1,10 @@
 packages:
   - 'packages/*'
+
+# pnpm 10+ reads settings here instead of the root package.json `pnpm` field.
+patchedDependencies:
+  '@earendil-works/pi-tui@0.80.7': patches/@earendil-works__pi-tui@0.80.7.patch
+
+# Deny by default; tsdown's esbuild bundler genuinely needs its install script.
+allowBuilds:
+  esbuild: true

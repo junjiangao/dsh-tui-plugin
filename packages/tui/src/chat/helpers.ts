@@ -25,7 +25,7 @@ export function isCompactCheckpoint(event: SessionEvent): boolean {
     && isReplacementSurfaceEvent(event)
 }
 
-import { execFileSync } from 'node:child_process'
+import { execFile } from 'node:child_process'
 import { homedir } from 'node:os'
 import { isAbsolute, relative, resolve, sep } from 'node:path'
 import { scrubbedParentEnv } from '@deepseek-ai/dsh-subprocess'
@@ -70,22 +70,27 @@ export function sessionReferenceCard(source: unknown): string[] | undefined {
 }
 
 /**
- * Resolve the current Git branch for the prompt context line.
+ * Resolve the current Git branch for the prompt context line. The query runs
+ * off the event loop (bounded, scrubbed environment) so the mount path never
+ * blocks on the subprocess; the prompt fills the branch in when it resolves.
  * @param cwd - Operational working directory to query.
  * @returns Branch name, or `undefined` outside a worktree or on any failure.
  */
-export function gitBranch(cwd: string): string | undefined {
-  try {
-    const branch = execFileSync('git', ['branch', '--show-current'], {
+export function gitBranch(cwd: string): Promise<string | undefined> {
+  return new Promise((resolve) => {
+    execFile('git', ['branch', '--show-current'], {
       cwd,
       encoding: 'utf8',
       env: scrubbedParentEnv(),
-      stdio: ['ignore', 'pipe', 'ignore'],
       timeout: 1_000,
-    }).trim()
-    /* v8 ignore next -- detached-HEAD behavior is exercised by the runtime smoke, not the unit checkout. */
-    return branch === '' ? undefined : branch
-  } catch (_gitUnavailableOrOutsideWorktree) {
-    return undefined
-  }
+    }, (error, stdout) => {
+      if (error !== null) {
+        resolve(undefined)
+        return
+      }
+      const branch = stdout.trim()
+      /* v8 ignore next -- detached-HEAD behavior is exercised by the runtime smoke, not the unit checkout. */
+      resolve(branch === '' ? undefined : branch)
+    })
+  })
 }

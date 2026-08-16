@@ -218,12 +218,28 @@ export class StatusCardComponent implements Component {
     const top = `${this.palette.dim('╭─ ')}${this.palette.bold(this.palette.accent(title))}${this.palette.dim(` ${topTail}╮`)}`
     const lines = [top]
     for (const line of body) {
-      const clipped = truncateToWidth(line, innerWidth, '')
-      lines.push(`${this.palette.dim('│')} ${clipped}${' '.repeat(Math.max(0, innerWidth - visibleWidth(clipped)))} ${this.palette.dim('│')}`)
+      lines.push(`${this.palette.dim('│')} ${padRow(line, innerWidth)} ${this.palette.dim('│')}`)
     }
     lines.push(this.palette.dim(`╰${'─'.repeat(Math.max(0, cardWidth - 2))}╯`))
     return lines
   }
+}
+
+/**
+ * Clip one dialog row to the inner width, pad it to the full inner width, and
+ * flank it with symmetric outer padding — the shared row-fitting idiom behind
+ * the bordered dialogs and the full-width question/approval panels.
+ * @param line - Row text (may carry SGR styling).
+ * @param innerWidth - Target visible width of the clipped+padded row.
+ * @param outerPad - Blank columns added on each side of the row.
+ * @param ellipsis - Marker appended when the row clips (empty for hard cuts).
+ * @returns The fitted row, exactly `innerWidth + 2 * outerPad` columns wide.
+ */
+function padRow(line: string, innerWidth: number, outerPad = 0, ellipsis = ''): string {
+  const bounded = truncateToWidth(line, innerWidth, ellipsis)
+  const pad = ' '.repeat(Math.max(0, innerWidth - visibleWidth(bounded)))
+  const outer = ' '.repeat(outerPad)
+  return `${outer}${bounded}${pad}${outer}`
 }
 
 /**
@@ -245,8 +261,7 @@ export function renderDialog(
   const top = `╭${topLabel}${'─'.repeat(Math.max(0, width - visibleWidth(topLabel) - 2))}╮`
   const lines: string[] = [palette.accent(top)]
   for (const line of body) {
-    const clipped = truncateToWidth(line, innerWidth, '')
-    lines.push(`${palette.accent('│')} ${clipped}${' '.repeat(Math.max(0, innerWidth - visibleWidth(clipped)))} ${palette.accent('│')}`)
+    lines.push(`${palette.accent('│')} ${padRow(line, innerWidth)} ${palette.accent('│')}`)
   }
   lines.push(palette.accent(`╰${'─'.repeat(Math.max(0, width - 2))}╯`))
   return lines
@@ -451,12 +466,6 @@ export function summarizeResumeCandidate(
 
 /** Which workspaces the resume picker currently lists. */
 export type ResumeScope = 'workspace' | 'all'
-
-interface SelectedBlockPage {
-  offset: number
-  size: number
-  maxOffset: number
-}
 
 /** Full-viewport keyboard selector over detached, preflighted resume summaries. */
 export class ResumePicker implements Component, Focusable {
@@ -960,12 +969,7 @@ export class QuestionDialog implements Component, Focusable {
           ...visibleRows.slice(-(maxHeight - 1)),
         ]
     }
-    return visibleRows.map((line) => {
-      const bounded = truncateToWidth(line, innerWidth, '…')
-      const pad = ' '.repeat(Math.max(0, innerWidth - visibleWidth(bounded)))
-      const outerPad = ' '.repeat(horizontalPadding)
-      return `${outerPad}${bounded}${pad}${outerPad}`
-    })
+    return visibleRows.map((line) => padRow(line, innerWidth, horizontalPadding, '…'))
   }
 
   /** Render one option as wrapped label and indented description lines. */
@@ -1173,10 +1177,7 @@ export class ApprovalDialog implements Component, Focusable {
     const innerWidth = Math.max(1, width - horizontalPadding * 2)
     const lines: string[] = ['', this.palette.bold(this.palette.accent(`Approve ${displayText(this.toolName)}?`))]
     const push = (line: string): void => {
-      const bounded = truncateToWidth(line, innerWidth, '…')
-      const pad = ' '.repeat(Math.max(0, innerWidth - visibleWidth(bounded)))
-      const outerPad = ' '.repeat(horizontalPadding)
-      lines.push(`${outerPad}${bounded}${pad}${outerPad}`)
+      lines.push(padRow(line, innerWidth, horizontalPadding, '…'))
     }
     if (this.reason !== undefined && this.reason !== '') {
       for (const line of wrapTextWithAnsi(displayText(this.reason), innerWidth)) {

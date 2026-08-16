@@ -3,14 +3,23 @@
   "private": true,
   "version": "0.0.0",
   "description": "Standalone dsh TUI plugin project, extracted from the deepseek-harness worktree (not merged upstream)",
-  "scripts": {
-    "test": "vitest run packages/tui/tests packages/tui-app/tests",
-    "typecheck": "tsc -p packages/tui/tsconfig.json --noEmit && tsc -p packages/tui-app/tsconfig.json --noEmit",
-    "build": "tsdown --config packages/tui/tsdown.config.ts"
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/junjiangao/dsh-tui-plugin.git"
   },
-  "pnpm": {
-    "patchedDependencies": {
-      "@earendil-works/pi-tui@0.80.7": "patches/@earendil-works__pi-tui@0.80.7.patch"
-    }
+  "scripts": {
+    "link:harness": "node scripts/link-harness.mjs",
+    "link:harness:revert": "node scripts/link-harness.mjs --revert",
+    "lint": "oxlint",
+    "test": "vitest run",
+    "typecheck": "tsc -p packages/tui/tsconfig.json --noEmit && tsc -p packages/tui-app/tsconfig.json --noEmit",
+    "build": "pnpm --filter @deepseek-ai/dsh-tui run build && pnpm --filter @deepseek-ai/dsh-tui-app run build"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.0",
+    "oxlint": "1.76.0",
+    "tsdown": "^0.22.2",
+    "typescript": "^6.0.3",
+    "vitest": "^3.2.4"
   }
 }

@@ -26,6 +26,25 @@
     "lib/types/**/*.d.ts"
   ],
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/junjiangao/dsh-tui-plugin.git",
+    "directory": "packages/tui"
+  },
+  "keywords": [
+    "tui",
+    "terminal",
+    "pi-tui",
+    "agent",
+    "chat",
+    "deepseek"
+  ],
+  "engines": {
+    "node": "^22.19.0 || >=24.0.0"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json && tsdown"
+  },
   "dependencies": {
     "@earendil-works/pi-tui": "0.80.7",
     "diff": "^9.0.0",

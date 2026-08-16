@@ -3,3 +3,16 @@ lib/
 dist/
 .dsh/
 *.log
+*.tsbuildinfo
+coverage/
+# Lockfiles embed link: paths into the local deepseek-harness checkout; each
+# dev environment (and CI) regenerates its own after `pnpm run link:harness`.
+pnpm-lock.yaml
+
+# Internal development notes (not published).
+GOAL-JOURNEY.md
+GOAL-PLAN.md
+OPTIMIZATION-JOURNEY.md
+
+.env
+.env.*

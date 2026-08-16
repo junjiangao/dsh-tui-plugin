@@ -1,0 +1,62 @@
+# Static lint is self-sufficient; typecheck/build/test need the harness plane
+# (the unpublished @deepseek-ai/* peers), so that job clones deepseek-harness
+# at a pinned ref, installs it once (linked packages resolve their transitive
+# deps through the harness tree's node_modules), then runs the same
+# link-harness flow a developer runs locally.
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      # oxlint only: the root project's devDependencies suffice, so the
+      # harness-linked member dependencies are not installed here. No
+      # pnpm cache: the lockfile is environment-local and not committed.
+      - run: pnpm install --filter dsh-tui-plugin --no-frozen-lockfile
+      - run: pnpm lint
+
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      # Pin the harness plane so the linked @deepseek-ai/* set (0.1.0-rc.5)
+      # stays reproducible; bump deliberately when the peers move.
+      DSH_HARNESS_REF: 47f943859bef60e4160492346772ded9b24f765a
+      DSH_HARNESS_ROOT: /home/runner/harness
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Clone deepseek-harness at the pinned ref
+        run: |
+          git clone --depth 1 https://github.com/deepseek-ai/deepseek-harness.git "$DSH_HARNESS_ROOT"
+          git -C "$DSH_HARNESS_ROOT" fetch --depth 1 origin "$DSH_HARNESS_REF"
+          git -C "$DSH_HARNESS_ROOT" checkout "$DSH_HARNESS_REF"
+      - name: Install harness dependencies
+        run: pnpm install --frozen-lockfile
+        working-directory: /home/runner/harness
+      - name: Link harness and install
+        run: |
+          node scripts/link-harness.mjs
+          pnpm install --no-frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm build

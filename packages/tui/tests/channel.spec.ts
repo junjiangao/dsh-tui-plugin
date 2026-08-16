@@ -199,9 +199,10 @@ describe('channel behavior', () => {
 
   it('renders a git branch in the prompt line when the runtime reports one', async () => {
     const { harness, terminal } = await setup({
-      runtime: { gitBranch: () => 'tui-staging' },
+      runtime: { gitBranch: async () => 'tui-staging' },
     })
-    // The branch is part of the first frame; no further render is needed.
+    // The async probe resolves on a microtask, ahead of the first paint, so
+    // the branch is already part of the first frame.
     const snapshot = await terminal.snapshot()
     expect(snapshot).toContain('(tui-staging)')
     await disposeTuiTestHarness(harness)

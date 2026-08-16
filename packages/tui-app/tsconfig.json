@@ -1,8 +1,16 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "rootDir": "src",
-    "outDir": "lib/types"
+    // Dev typecheck (--noEmit) pulls the sibling dsh-tui source in via
+    // `paths`; declaration-emit layout constraints (composite/rootDir) would
+    // reject those files. Declaration builds use tsconfig.build.json, which
+    // resolves the built lib/types of dsh-tui through package exports instead.
+    "composite": false,
+    "declaration": false,
+    "declarationMap": false,
+    "paths": {
+      "@deepseek-ai/dsh-tui": ["../tui/src/index.ts"]
+    }
   },
   "include": [
     "src"

@@ -1,10 +1,17 @@
-import { execFileSync } from 'node:child_process'
+import { execFile } from 'node:child_process'
 import { homedir } from 'node:os'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { formatCwd, gitBranch, sessionReferenceCard } from '../src/chat/helpers.ts'
 
 vi.mock('node:child_process', () => ({
-  execFileSync: vi.fn(() => 'main\n'),
+  execFile: vi.fn((
+    _command: string,
+    _args: readonly string[],
+    _options: unknown,
+    callback: (error: Error | null, stdout: string) => void,
+  ) => {
+    callback(null, 'main\n')
+  }),
 }))
 
 afterEach(() => {
@@ -51,14 +58,15 @@ describe('formatCwd', () => {
 })
 
 describe('gitBranch', () => {
-  it('scrubs ambient credentials and DSH names from the Git child', () => {
+  it('scrubs ambient credentials and DSH names from the Git child', async () => {
     vi.stubEnv('TUI_TEST_PASSWORD', 'ambient-password')
     vi.stubEnv('DSH_TUI_TEST_FLAG', 'ambient-harness-state')
-    expect(gitBranch('/workspace')).toBe('main')
-    const call = vi.mocked(execFileSync).mock.calls[0] as unknown as [
+    await expect(gitBranch('/workspace')).resolves.toBe('main')
+    const call = vi.mocked(execFile).mock.calls[0] as unknown as [
       string,
       string[],
       { env: NodeJS.ProcessEnv },
+      unknown,
     ]
     expect(call[0]).toBe('git')
     expect(call[1]).toEqual(['branch', '--show-current'])
@@ -66,8 +74,15 @@ describe('gitBranch', () => {
     expect(call[2].env).not.toHaveProperty('DSH_TUI_TEST_FLAG')
   })
 
-  it('is undefined when git is unavailable or outside a worktree', () => {
-    vi.mocked(execFileSync).mockImplementation(() => { throw new Error('git not found') })
-    expect(gitBranch('/workspace')).toBeUndefined()
+  it('resolves undefined when git is unavailable or outside a worktree', async () => {
+    vi.mocked(execFile).mockImplementation(((
+      _command: string,
+      _args: readonly string[],
+      _options: unknown,
+      callback: (error: Error | null, stdout: string) => void,
+    ) => {
+      callback(new Error('git not found'), '')
+    }) as unknown as typeof execFile)
+    await expect(gitBranch('/workspace')).resolves.toBeUndefined()
   })
 })

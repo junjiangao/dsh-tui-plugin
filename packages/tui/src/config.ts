@@ -12,20 +12,12 @@ import {
   DEFAULT_FILE_SEARCH_MAX_RESULTS,
 } from './chat/file-autocomplete.ts'
 
-/** Theme and prompt-template settings for the pi-tui terminal mode. */
+/** Theme settings for the pi-tui terminal mode. */
 export interface TuiThemeConfig {
   /** Apply the built-in ANSI color palette. */
   color?: boolean
   /** Paint the startup banner with the 24-bit DeepSeek brand gradient. */
   truecolor?: boolean
-  /** Left-aligned template on the row above the editor. */
-  leftPrompt?: string
-  /** Right-aligned template on the row above the editor. */
-  rightPrompt?: string
-  /** Template used as the editor's first-line prefix. */
-  inputPrompt?: string
-  /** Static placeholder shown in an empty editor while the agent is running. */
-  inputPlaceholder?: string
 }
 
 /** Interaction and presentation settings for the pi-tui terminal mode. */
@@ -52,8 +44,6 @@ export interface TuiConfig {
   modelDialogWidth?: number
   /** Model-selector maximum height in terminal rows. */
   modelDialogMaxHeight?: number
-  /** Transcript-details selector width in terminal columns. */
-  detailsDialogWidth?: number
   /** Maximum fuzzy file candidates displayed for one `@` query. */
   fileSearchMaxResults?: number
   /** Maximum paths retained in one `@` workspace index. */
@@ -62,8 +52,6 @@ export interface TuiConfig {
   fileSearchExcludedDirectories?: string[]
   /** Show the terminal's hardware cursor at the pi editor's IME marker. */
   showHardwareCursor?: boolean
-  /** Render-frame budget in milliseconds; the steady-state keystroke latency target. */
-  frameBudgetMs?: number
   /** User messages replayed into the transcript on mount; earlier history loads on demand. */
   maxInitialMessages?: number
   /** Events loaded by one history-page request. */
@@ -74,7 +62,7 @@ export interface TuiConfig {
   cardCacheEntries?: number
   /** Status-footer refresh interval in milliseconds while the agent is running. */
   statusIntervalMs?: number
-  /** Color and prompt-template settings. */
+  /** Color settings. */
   theme?: TuiThemeConfig
   /** Terminal window title while the UI is mounted; a logged session title prefixes it. */
   title?: string
@@ -91,12 +79,10 @@ const questionDialogWidthSchema = z.number().step(1).min(20).default(200)
 const questionDialogMaxHeightSchema = z.number().step(1).min(6).default(20)
 const modelDialogWidthSchema = z.number().step(1).min(20).default(76)
 const modelDialogMaxHeightSchema = z.number().step(1).min(6).default(20)
-const detailsDialogWidthSchema = z.number().step(1).min(20).default(72)
 const fileSearchMaxResultsSchema = z.number().step(1).min(1).default(DEFAULT_FILE_SEARCH_MAX_RESULTS)
 const fileSearchMaxEntriesSchema = z.number().step(1).min(1).default(DEFAULT_FILE_SEARCH_MAX_ENTRIES)
 const fileSearchExcludedDirectoriesSchema = z.array(z.string()).default([...DEFAULT_FILE_SEARCH_EXCLUDED_DIRECTORIES])
 const showHardwareCursorSchema = z.boolean().default(false)
-const frameBudgetMsSchema = z.number().step(1).min(1).default(16)
 const maxInitialMessagesSchema = z.number().step(1).min(1).default(200)
 const historyPageSizeSchema = z.number().step(1).min(1).default(100)
 const transcriptResidentMaxBytesSchema = z.number().step(1).min(1024).default(4_194_304)
@@ -105,20 +91,17 @@ const statusIntervalMsSchema = z.number().step(1).min(50).default(500)
 const colorSchema = z.boolean().default(true)
 // No default: an unset value auto-detects truecolor from COLORTERM in `apply`.
 const truecolorSchema = z.boolean()
-const DEFAULT_LEFT_PROMPT = '${cwd}${git/worktree}${model}${token_meter/cache_hit_rate}${context}'
-const DEFAULT_RIGHT_PROMPT = '${queued}'
-const DEFAULT_INPUT_PROMPT = '${symbol} ${indicator}'
-const DEFAULT_INPUT_PLACEHOLDER = 'press enter to steer and esc to cancel'
 const TuiThemeConfigSchema: z<TuiThemeConfig> = z.object({
   color: colorSchema,
   truecolor: truecolorSchema,
-  leftPrompt: z.string().default(DEFAULT_LEFT_PROMPT),
-  rightPrompt: z.string().default(DEFAULT_RIGHT_PROMPT),
-  inputPrompt: z.string().default(DEFAULT_INPUT_PROMPT),
-  inputPlaceholder: z.string().default(DEFAULT_INPUT_PLACEHOLDER),
 })
 const titleSchema = z.string().default('DeepSeek Harness')
 
+/**
+ * Presentation fields shared verbatim by {@link TuiConfigSchema} and the
+ * plugin-level {@link Config} schema — the single field table; both schemas
+ * spread it, so a knob added here is settable through either path.
+ */
 const tuiConfigSchemaFields = {
   showReasoning: showReasoningSchema,
   maxToolOutputLines: maxToolOutputLinesSchema,
@@ -131,12 +114,10 @@ const tuiConfigSchemaFields = {
   questionDialogMaxHeight: questionDialogMaxHeightSchema,
   modelDialogWidth: modelDialogWidthSchema,
   modelDialogMaxHeight: modelDialogMaxHeightSchema,
-  detailsDialogWidth: detailsDialogWidthSchema,
   fileSearchMaxResults: fileSearchMaxResultsSchema,
   fileSearchMaxEntries: fileSearchMaxEntriesSchema,
   fileSearchExcludedDirectories: fileSearchExcludedDirectoriesSchema,
   showHardwareCursor: showHardwareCursorSchema,
-  frameBudgetMs: frameBudgetMsSchema,
   maxInitialMessages: maxInitialMessagesSchema,
   historyPageSize: historyPageSizeSchema,
   transcriptResidentMaxBytes: transcriptResidentMaxBytesSchema,
@@ -155,12 +136,6 @@ export interface Config extends TuiConfig {
   welcome?: string
   /** Exact shared agent/session identity driven by this terminal. Defaults to `main`. */
   sessionId?: string
-  /**
-   * Skill name auto-invoked as this session's first user turn, exactly as if
-   * the user typed `/skill:<name>`. Set only by a launcher for a fresh
-   * skill-guided session; absent leaves the first turn to the user.
-   */
-  initialSkill?: string
   /** Provider/model route from `--model <provider>/<model>`; absent keeps the session default. */
   model?: string
 }
@@ -169,41 +144,14 @@ export interface Config extends TuiConfig {
 export const Config: z<Config> = z.object({
   welcome: z.string(),
   sessionId: z.string().default('main'),
-  initialSkill: z.string(),
   model: z.string(),
-  showReasoning: tuiConfigSchemaFields.showReasoning,
-  maxToolOutputLines: tuiConfigSchemaFields.maxToolOutputLines,
-  maxDiffEditLength: tuiConfigSchemaFields.maxDiffEditLength,
-  maxQuestionOptions: tuiConfigSchemaFields.maxQuestionOptions,
-  maxModelOptions: tuiConfigSchemaFields.maxModelOptions,
-  maxResumeOptions: tuiConfigSchemaFields.maxResumeOptions,
-  questionDialogWidth: tuiConfigSchemaFields.questionDialogWidth,
-  questionDialogMaxHeight: tuiConfigSchemaFields.questionDialogMaxHeight,
-  modelDialogWidth: tuiConfigSchemaFields.modelDialogWidth,
-  modelDialogMaxHeight: tuiConfigSchemaFields.modelDialogMaxHeight,
-  detailsDialogWidth: tuiConfigSchemaFields.detailsDialogWidth,
-  fileSearchMaxResults: tuiConfigSchemaFields.fileSearchMaxResults,
-  fileSearchMaxEntries: tuiConfigSchemaFields.fileSearchMaxEntries,
-  fileSearchExcludedDirectories: tuiConfigSchemaFields.fileSearchExcludedDirectories,
-  showHardwareCursor: tuiConfigSchemaFields.showHardwareCursor,
-  frameBudgetMs: tuiConfigSchemaFields.frameBudgetMs,
-  maxInitialMessages: tuiConfigSchemaFields.maxInitialMessages,
-  historyPageSize: tuiConfigSchemaFields.historyPageSize,
-  transcriptResidentMaxBytes: tuiConfigSchemaFields.transcriptResidentMaxBytes,
-  cardCacheEntries: tuiConfigSchemaFields.cardCacheEntries,
-  statusIntervalMs: tuiConfigSchemaFields.statusIntervalMs,
-  theme: tuiConfigSchemaFields.theme,
-  title: tuiConfigSchemaFields.title,
+  ...tuiConfigSchemaFields,
 })
 
 /** Fully defaulted TUI theme settings. */
 export interface ResolvedTuiThemeConfig {
   color: boolean
   truecolor: boolean
-  leftPrompt: string
-  rightPrompt: string
-  inputPrompt: string
-  inputPlaceholder: string
 }
 
 /** Fully defaulted TUI presentation settings. */
@@ -219,12 +167,10 @@ export interface ResolvedTuiConfig {
   questionDialogMaxHeight: number
   modelDialogWidth: number
   modelDialogMaxHeight: number
-  detailsDialogWidth: number
   fileSearchMaxResults: number
   fileSearchMaxEntries: number
   fileSearchExcludedDirectories: string[]
   showHardwareCursor: boolean
-  frameBudgetMs: number
   maxInitialMessages: number
   historyPageSize: number
   transcriptResidentMaxBytes: number
@@ -253,12 +199,10 @@ export function resolveTuiConfig(config: TuiConfig | undefined): ResolvedTuiConf
     questionDialogMaxHeight: config?.questionDialogMaxHeight ?? 20,
     modelDialogWidth: config?.modelDialogWidth ?? 76,
     modelDialogMaxHeight: config?.modelDialogMaxHeight ?? 20,
-    detailsDialogWidth: config?.detailsDialogWidth ?? 72,
     fileSearchMaxResults: config?.fileSearchMaxResults ?? DEFAULT_FILE_SEARCH_MAX_RESULTS,
     fileSearchMaxEntries: config?.fileSearchMaxEntries ?? DEFAULT_FILE_SEARCH_MAX_ENTRIES,
     fileSearchExcludedDirectories: [...(config?.fileSearchExcludedDirectories ?? DEFAULT_FILE_SEARCH_EXCLUDED_DIRECTORIES)],
     showHardwareCursor: config?.showHardwareCursor ?? false,
-    frameBudgetMs: config?.frameBudgetMs ?? 16,
     maxInitialMessages: config?.maxInitialMessages ?? 200,
     historyPageSize: config?.historyPageSize ?? 100,
     transcriptResidentMaxBytes: config?.transcriptResidentMaxBytes ?? 4_194_304,
@@ -267,10 +211,6 @@ export function resolveTuiConfig(config: TuiConfig | undefined): ResolvedTuiConf
     theme: {
       color: config?.theme?.color ?? true,
       truecolor: config?.theme?.truecolor ?? false,
-      leftPrompt: config?.theme?.leftPrompt ?? DEFAULT_LEFT_PROMPT,
-      rightPrompt: config?.theme?.rightPrompt ?? DEFAULT_RIGHT_PROMPT,
-      inputPrompt: config?.theme?.inputPrompt ?? DEFAULT_INPUT_PROMPT,
-      inputPlaceholder: config?.theme?.inputPlaceholder ?? DEFAULT_INPUT_PLACEHOLDER,
     },
     title: config?.title ?? 'DeepSeek Harness',
   }

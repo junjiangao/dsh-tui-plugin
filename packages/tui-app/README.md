@@ -2,11 +2,11 @@
 
 English | [中文](README.zh.md)
 
-The dsh terminal bundle: the interactive pi-tui patch layer over [`dsh-base`](../base/README.md) plus the startup glue plugin. This package's [`cordis.patch.yml`](cordis.patch.yml) is the `tui` profile's own overlay; it overrides the coding persona, wires the tool presentation mode, inserts the storage stack (durable checkpoint cache for /resume titles), the session-reference provider, the keyboard-backed `ask_user_question` tool, the `tui-startup` flag provider, and the `tui` row itself.
+The dsh terminal bundle: the interactive pi-tui patch layer over the `dsh-base` bundle (host-provided) plus the startup glue plugin. This package's [`cordis.patch.yml`](cordis.patch.yml) is the `tui` profile's own overlay; it overrides the coding persona, wires the tool presentation mode, inserts the storage stack (durable checkpoint cache for /resume titles), the session-reference provider, the keyboard-backed `ask_user_question` tool, the `tui-startup` flag provider, and the `tui` row itself.
 
 ## Startup
 
-The `tui-startup` plugin ([`src/startup.ts`](src/startup.ts)) injects `ctx.cmdlineArgs` ([dsh-cmdline](../../boot/cmdline/README.md)), parses the `dsh --profile tui` flag family, and provides the immutable `tuiStartup` service; rows that need it inject it and read it from lazy config, so `--help` (which provides nothing) never mounts the terminal.
+The `tui-startup` plugin ([`src/startup.ts`](src/startup.ts)) injects `ctx.cmdlineArgs` (host-provided `dsh-cmdline`), parses the `dsh --profile tui` flag family, and provides the immutable `tuiStartup` service; rows that need it inject it and read it from lazy config, so `--help` (which provides nothing) never mounts the terminal.
 
 | Flag | Effect |
 |---|---|

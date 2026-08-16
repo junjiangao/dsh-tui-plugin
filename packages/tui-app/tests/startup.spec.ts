@@ -4,7 +4,7 @@
  * the consumer pending.
  */
 
-import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
@@ -80,7 +80,6 @@ export const apply = ctx => globalThis.__tuiStartupApply(ctx)
   await ctx.plugin(Loader)
   ctx.loader.builtins.include = Include
   provideCmdline(ctx, { args, exit: code => void observed.exits.push(code) })
-  console.log('FIXTURE', dir, JSON.stringify(readFileSync(join(dir, 'row.mjs'), 'utf8')), JSON.stringify(readFileSync(join(dir, 'cordis.yml'), 'utf8')))
   await ctx.loader.create({ name: 'cordis:include', config: { path: pathToFileURL(join(dir, 'cordis.yml')).href } })
   await ctx.loader.await()
   disposers.push(async () => {

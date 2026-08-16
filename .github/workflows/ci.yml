@@ -21,15 +21,13 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-      # oxlint only: the root project's devDependencies suffice, so the
-      # harness-linked member dependencies are not installed here. No
-      # pnpm cache: the lockfile is environment-local and not committed.
-      - run: pnpm install --filter dsh-tui-plugin --no-frozen-lockfile
-      - run: pnpm lint
+      # oxlint only, installed standalone: a workspace install would try to
+      # resolve the unpublished @deepseek-ai/* peers from the registry.
+      - run: npm install -g oxlint@1.76.0
+      - run: oxlint
 
   verify:
     runs-on: ubuntu-latest
@@ -52,6 +50,11 @@ jobs:
           git -C "$DSH_HARNESS_ROOT" checkout "$DSH_HARNESS_REF"
       - name: Install harness dependencies
         run: pnpm install --frozen-lockfile
+        working-directory: /home/runner/harness
+      # The harness's lib/ type entry points are build artifacts (not committed),
+      # so the linked packages only resolve after a library build.
+      - name: Build harness libraries
+        run: pnpm build:lib
         working-directory: /home/runner/harness
       - name: Link harness and install
         run: |

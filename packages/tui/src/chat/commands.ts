@@ -10,7 +10,7 @@
 import type { Context } from '@deepseek-ai/cordis'
 import { CombinedAutocompleteProvider, type Editor } from '@earendil-works/pi-tui'
 import type { Agent } from '@deepseek-ai/dsh-agent'
-import type { CommandResult } from '@deepseek-ai/dsh-commands'
+import type { CommandExecution, CommandResult } from '@deepseek-ai/dsh-commands'
 import { errorChain } from '@deepseek-ai/dsh-llm'
 import type { SessionReferenceResolver } from '@deepseek-ai/dsh-session-reference'
 import { renderPalette, type Palette } from '../components/theme.ts'
@@ -50,6 +50,42 @@ export interface CommandControllerDeps {
   clearChat(): void
   setToolsVisibility(visibility: ToolCardVisibility): void
   setShowReasoning(show: boolean): void
+}
+
+/**
+ * The two slash-command executor arities this bundle supports.
+ *
+ * The published `dsh-commands` runtime inserted an `images` slot between the
+ * line and the cancellation signal, while the pinned dev harness still
+ * carries the three-argument form. One committed bundle has to run on both.
+ */
+type CommandExecutor = {
+  (agent: Agent, line: string, signal: AbortSignal): Promise<CommandExecution | undefined>
+  (agent: Agent, line: string, images: readonly unknown[], signal: AbortSignal): Promise<CommandExecution | undefined>
+}
+
+/** Image slot value for executors that admit composer images (the TUI sends none). */
+const NO_COMMAND_IMAGES: readonly [] = Object.freeze([])
+
+/**
+ * Dispatch one slash-command line through either host-runtime signature.
+ *
+ * Executors declare their arity before any defaults, so `execute.length`
+ * tells the two host generations apart: pass the empty image slot only to
+ * the published four-argument form and keep the signal in the final
+ * position for both.
+ */
+export function executeCommandLine(
+  commands: Context['commands'],
+  agent: Agent,
+  line: string,
+  signal: AbortSignal,
+): Promise<CommandExecution | undefined> {
+  const execute = commands.execute as unknown as CommandExecutor
+  const call = execute as unknown as (...args: unknown[]) => Promise<CommandExecution | undefined>
+  return execute.length >= 4
+    ? Reflect.apply(call, commands, [agent, line, NO_COMMAND_IMAGES, signal])
+    : Reflect.apply(call, commands, [agent, line, signal])
 }
 
 /** The slash-command surface owned by one chat channel. */
@@ -249,7 +285,7 @@ export function createCommandController(deps: CommandControllerDeps): CommandCon
     if (!text.startsWith('/')) return false
     const controller = new AbortController()
     controllers.add(controller)
-    void ctx.commands.execute(agent, text, controller.signal).then(
+    void executeCommandLine(ctx.commands, agent, text, controller.signal).then(
       (execution) => {
         // Disposal aborts every in-flight controller, so a successful
         // execution can only land on a live channel.

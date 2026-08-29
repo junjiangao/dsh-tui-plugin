@@ -8,6 +8,7 @@ import { describe, expect, it } from 'vitest'
 import GoalService from '@deepseek-ai/dsh-goal'
 import * as commandGoal from '@deepseek-ai/dsh-command-goal'
 import { SessionId } from '@deepseek-ai/dsh-session'
+import { executeCommandLine } from '../src/chat/commands.ts'
 import { createTuiTestHarness, disposeTuiTestHarness } from './harness.ts'
 import { HeadlessTerminal } from './headless-terminal.ts'
 
@@ -367,5 +368,36 @@ describe('slash commands in the live channel', () => {
     expect(snapshot).toContain('dark scheme · color on')
     await disposeTuiTestHarness(harness)
     await terminal.dispose()
+  })
+
+  it('dispatches to both command-executor host arities with the signal last', async () => {
+    const signal = new AbortController().signal
+    const agent = { id: 'main-session' } as never
+    let receivedImages: unknown = 'untouched'
+    let receivedSignal: AbortSignal | undefined
+
+    // The published dsh-commands runtime takes (agent, line, images, signal).
+    const fourArg = {
+      execute(_agent: unknown, _line: string, images: readonly unknown[], signal: AbortSignal) {
+        receivedImages = images
+        receivedSignal = signal
+        return Promise.resolve(undefined)
+      },
+    }
+    await executeCommandLine(fourArg as never, agent, '/nope', signal)
+    expect(receivedImages).toEqual([])
+    expect(receivedSignal).toBe(signal)
+
+    // The pinned dev-harness runtime takes (agent, line, signal).
+    const threeArg = {
+      execute(_agent: unknown, _line: string, signal: AbortSignal) {
+        receivedImages = 'untouched'
+        receivedSignal = signal
+        return Promise.resolve(undefined)
+      },
+    }
+    await executeCommandLine(threeArg as never, agent, '/nope', signal)
+    expect(receivedImages).toBe('untouched')
+    expect(receivedSignal).toBe(signal)
   })
 })

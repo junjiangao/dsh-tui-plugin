@@ -8,6 +8,7 @@
  * @module @deepseek-ai/dsh-tui-app/startup
  */
 
+import { randomUUID } from 'node:crypto'
 import { Command } from 'commander'
 import type { Context } from '@deepseek-ai/cordis'
 import { parseCmdline } from '@deepseek-ai/dsh-cmdline'
@@ -23,7 +24,10 @@ export const TUI_STARTUP_SERVICE = 'tuiStartup'
 export interface TuiStartupValues {
   /** Persisted session to resume, from `--resume`; absent mints a fresh one. */
   resumeSessionId?: string
-  /** Explicit id for the fresh session this invocation creates, from `--session`. */
+  /**
+   * Explicit id for the fresh session this invocation creates, from
+   * `--session`; when both flags are absent a `session-<uuid>` id is minted.
+   */
   sessionId?: string
   /** Provider/model route, from `--model <provider>/<model>`; absent keeps the session default. */
   model?: string
@@ -111,9 +115,13 @@ export function apply(ctx: Context): void {
     if (options.preset !== undefined && !/^[a-z0-9][a-z0-9-]*$/u.test(options.preset)) {
       program.error(`error: --preset must be a preset id ([a-z0-9][a-z0-9-]*), got ${JSON.stringify(options.preset)}`)
     }
+    // A fresh launch without --session mints its own id: session ids are
+    // globally unique in the persistence root, and a fixed fallback (the old
+    // `main`) collides with the same id persisted under any other cwd.
+    const freshSessionId = options.resume === undefined ? options.session ?? `session-${randomUUID()}` : undefined
     ctx.provide(TUI_STARTUP_SERVICE, {
       ...options.resume !== undefined && { resumeSessionId: options.resume },
-      ...options.session !== undefined && { sessionId: options.session },
+      ...freshSessionId !== undefined && { sessionId: freshSessionId },
       ...options.model !== undefined && { model: options.model },
       ...toolMode !== undefined && { toolMode },
       ...options.preset !== undefined && { preset: options.preset },

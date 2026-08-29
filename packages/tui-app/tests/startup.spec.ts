@@ -113,9 +113,14 @@ describe('tui command-line provider', () => {
     expect(observed.tuiConfig).toEqual({ sessionId: 'explicit-id', model: undefined })
   })
 
-  it('leaves the identity at its default when no session flag is given', async () => {
-    const { observed } = await bootStartup([])
-    expect(observed.tuiConfig).toEqual({ sessionId: 'main', model: undefined })
+  it('mints a unique fresh-session identity when no session flag is given', async () => {
+    const first = await bootStartup([])
+    const second = await bootStartup([])
+    const idPattern = /^session-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/u
+    expect(first.startup?.sessionId).toMatch(idPattern)
+    expect(first.observed.tuiConfig).toEqual({ sessionId: first.startup?.sessionId, model: undefined })
+    expect(second.startup?.sessionId).toMatch(idPattern)
+    expect(second.startup?.sessionId).not.toBe(first.startup?.sessionId)
   })
 
   it.each([

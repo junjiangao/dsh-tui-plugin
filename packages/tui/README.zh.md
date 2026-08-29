@@ -9,8 +9,8 @@ DeepSeek Harness 智能体的交互式全屏终端前门。由 [`@deepseek-ai/ds
 - **单一根智能体** — `mountTui` 创建（或通过 `--resume` 恢复）一个持久化会话并在整个终端生命周期内驱动它；transcript、流式步骤、工具卡与对话框全部从持久化会话日志渲染。
 - **Transcript** — 用户/助手消息、流式文本与推理增量、按步骤的计时页脚、回合结束通知。长会话不会构建整棵组件树：挂载只回放最近 `maxInitialMessages` 条用户消息，`/more`（或 PageUp）按 `historyPageSize` 条消息按需加载更早的页；驻留账本在 `transcriptResidentMaxBytes` / `cardCacheEntries` 预算下驱逐最旧的已结算行与卡片。
 - **工具卡** — 每个工具调用一张卡，支持 `generic`、`terminal` 或 `diff` 展示，Ctrl+O 折叠/展开、Ctrl+R 隐藏推理；超出 `maxDiffEditLength` 的大 diff 退化渲染完整两侧。
-- **交互** — goal 状态行、审批对话框、`ask_user_question` 对话框与扩展 overlay 通过 `ctx.tui.openOverlay` 渲染；Ctrl+C 取消当前回合，Esc 取消活动 overlay。
-- **命令** — `/clear`、`/details`、`/exit`、`/help`、`/model`、`/more`、`/palette`、`/quit`、`/resume`、`/status`，外加 goal 命令单元的自身命令；空提示符下的 Ctrl+D 与 Ctrl+C 同样退出。
+- **交互** — goal 状态行、审批对话框、`ask_user_question` 对话框与扩展 overlay 通过 `ctx.tui.openOverlay` 渲染；单次 Ctrl+C 取消当前回合或清空草稿，空提示符下显示“再按一次 Ctrl+C 退出”提示，连续两次退出到 shell，Esc 取消当前回合或 overlay。
+- **命令** — `/clear`、`/details`、`/exit`、`/help`、`/model`、`/more`、`/palette`、`/quit`、`/resume`、`/status`，外加 goal 命令单元的自身命令；Ctrl+C×2 与 Ctrl+D 退出。
 - **选择与补全** — `/model` 选择器（来自 `ctx.llm` 的 provider/model/effort）、`/resume` 会话选择器（projection-cache 标题、有界并发扫描），以及带工作区索引边界的 `@` 文件与会话引用补全。
 - **状态页脚** — 阶段字形、运行墙钟（运行期间按 `statusIntervalMs` 跳动）、排队 steering、token 桶、KV 缓存命中率、上下文占用、模型路由与工具卡模式，按终端宽度截断；终端标题跟随持久化会话标题。
 

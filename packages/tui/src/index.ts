@@ -15,6 +15,7 @@ import {
   Spacer,
   TUI,
   Text,
+  isKeyRelease,
   matchesKey,
   sliceByColumn,
   visibleWidth,
@@ -139,6 +140,14 @@ export interface TuiController {
  */
 const COMPACTION_MARKER = '… earlier context was compacted …'
 
+/**
+ * Two Ctrl+C presses inside this window mean "exit to the shell". A single
+ * press keeps its in-channel meaning: cancel a running turn, or clear a
+ * non-empty editor. The window uses the runtime clock, so tests and host
+ * overrides keep deterministic control over the double-press boundary.
+ */
+const CTRL_C_EXIT_WINDOW_MS = 1_000
+
 /** Width/height adapter for a modal component rendered inside the base TUI flow. */
 class InlineModalComponent extends Container {
   constructor(
@@ -238,6 +247,9 @@ export function createTuiChat(
   let modelController!: ModelController
   let disposed = false
   let shuttingDown: Promise<void> | undefined
+  let lastCtrlCPressAt = Number.NEGATIVE_INFINITY
+  let ctrlCExitHint = false
+  let ctrlCExitHintTimer: ReturnType<typeof setTimeout> | undefined
   let showReasoning = resolved.showReasoning
   let toolsVisibility: ToolCardVisibility = 'collapsed'
   let streaming: StreamingAssistantComponent | undefined
@@ -253,6 +265,15 @@ export function createTuiChat(
   const contextCards = new Set<ContextCardComponent>()
 
   const now = (): number => runtime.now?.() ?? Date.now()
+  /** Drop the pending double-press state and its prompt hint. */
+  const clearCtrlCPending = (): void => {
+    if (ctrlCExitHintTimer !== undefined) {
+      clearTimeout(ctrlCExitHintTimer)
+      ctrlCExitHintTimer = undefined
+    }
+    lastCtrlCPressAt = Number.NEGATIVE_INFINITY
+    ctrlCExitHint = false
+  }
   // The banner subtitle and terminal title follow the durable session title;
   // the configured title is the fallback until a title is logged.
   let sessionTitle = foldSessionTitle(agent.session.events)?.title
@@ -273,7 +294,8 @@ export function createTuiChat(
 
   const updatePromptLine = (): void => {
     promptLine.setText(palette.dim(
-      `${formattedCwd}${branch === undefined ? '' : ` (${displayText(branch)})`}  ${agent.status === 'running' ? 'running' : 'idle'}`,
+      `${formattedCwd}${branch === undefined ? '' : ` (${displayText(branch)})`}  ${agent.status === 'running' ? 'running' : 'idle'}`
+      + (ctrlCExitHint ? '  ·  press Ctrl+C again to exit' : ''),
     ))
   }
   updatePromptLine()
@@ -810,6 +832,16 @@ export function createTuiChat(
   }
 
   const removeInputListener = ui.addInputListener((data) => {
+    // Kitty terminals report a release event for every press; only presses
+    // are actionable here, so a release never consumes a shortcut.
+    if (isKeyRelease(data)) return undefined
+    // A consecutive double press means nothing happened in between: any
+    // other actionable key breaks the pending Ctrl+C run and clears its hint.
+    if (!matchesKey(data, Key.ctrl('c'))) {
+      const hintVisible = ctrlCExitHint
+      clearCtrlCPending()
+      if (hintVisible) requestRender()
+    }
     // A modal owns the keyboard while it is active: every global shortcut
     // (Ctrl+O/Ctrl+R/Esc/Ctrl+C/Ctrl+D) yields to the focused overlay so its
     // own keys — including an approval dialog's Ctrl+C withdrawal — land.
@@ -837,12 +869,31 @@ export function createTuiChat(
       return { consume: true }
     }
     if (matchesKey(data, Key.ctrl('c'))) {
+      const pressedAt = now()
+      const doublePress = lastCtrlCPressAt !== Number.NEGATIVE_INFINITY
+        && pressedAt - lastCtrlCPressAt <= CTRL_C_EXIT_WINDOW_MS
+      if (doublePress) {
+        clearCtrlCPending()
+        requestExit()
+        return { consume: true }
+      }
+      // Two consecutive presses exit to the shell. One press keeps its
+      // in-channel meaning: cancel a running turn, or clear a non-empty
+      // editor (Esc remains the cancel-only shortcut).
+      clearCtrlCPending()
+      lastCtrlCPressAt = pressedAt
       if (agent.status === 'running') {
         agent.cancel({ kind: 'user' })
       } else if (editor.getText() !== '') {
         editor.setText('')
       } else {
-        requestExit()
+        ctrlCExitHint = true
+        ctrlCExitHintTimer = setTimeout(() => {
+          ctrlCExitHintTimer = undefined
+          if (disposed) return
+          clearCtrlCPending()
+          requestRender()
+        }, CTRL_C_EXIT_WINDOW_MS)
       }
       requestRender()
       return { consume: true }
@@ -905,6 +956,7 @@ export function createTuiChat(
   const shutdown = (exitProcess: boolean): Promise<void> => {
     shuttingDown ??= (async () => {
       disposed = true
+      clearCtrlCPending()
       // Reject new overlay work first, then close dependent extension fibers
       // (their overlay sessions settle owner-disposed) before the terminal
       // stops.

@@ -74,10 +74,8 @@ describe('channel behavior', () => {
     await terminal.dispose()
   })
 
-  it('cancels with Esc and Ctrl+C while running, clears input with Ctrl+C, and exits with an empty Ctrl+C', async () => {
-    const { harness, terminal, exits } = await setup({
-      runtime: { goodbyeMessage: 'resume with: dsh --profile tui --resume x' },
-    })
+  it('cancels with Esc while running', async () => {
+    const { harness, terminal, exits } = await setup()
     harness.agent.status = 'running'
     emitAgentEvent(harness.ctx, harness.agent, 'agent/status', { status: 'running' })
     await terminal.waitForFrame()
@@ -87,25 +85,121 @@ describe('channel behavior', () => {
     terminal.send('\x1b')
     await new Promise(resolve => setTimeout(resolve, 20))
     expect(harness.agent.cancelled).toEqual([{ kind: 'user' }])
+    expect(exits).toEqual([])
+    await disposeTuiTestHarness(harness)
+    await terminal.dispose()
+  })
+
+  it('requires two consecutive Ctrl+C presses to exit from a running turn, a draft, or an empty prompt', async () => {
+    const running = await setup({
+      runtime: { goodbyeMessage: 'resume with: dsh --profile tui --resume x' },
+    })
+    running.harness.agent.status = 'running'
+    emitAgentEvent(running.harness.ctx, running.harness.agent, 'agent/status', { status: 'running' })
+    await running.terminal.waitForFrame()
+    running.terminal.send('\x03')
+    await new Promise(resolve => setTimeout(resolve, 20))
+    // The first press only cancels the turn; the second one requests the
+    // deferred exit (cancel again if still running, then shut down on idle).
+    expect(running.exits).toEqual([])
+    expect(running.harness.agent.cancelled).toEqual([{ kind: 'user' }])
+    running.terminal.send('\x03')
+    running.harness.agent.status = 'idle'
+    await new Promise(resolve => setTimeout(resolve, 50))
+    expect(running.exits).toEqual([0])
+    expect(running.harness.agent.cancelled).toEqual([{ kind: 'user' }, { kind: 'user' }])
+    expect(running.harness.agent.disposed).toEqual([true])
+    expect(running.terminal.stopped).toBe(1)
+    expect(running.terminal.title).toBe('DeepSeek Harness')
+    await running.harness.ctx.fiber.dispose()
+    await running.terminal.dispose()
+
+    const draft = await setup()
+    draft.terminal.send('draft')
+    await draft.terminal.waitForFrame()
+    expect(await draft.terminal.snapshot()).toContain('draft')
+    draft.terminal.send('\x03')
+    await draft.terminal.waitForFrame()
+    // The first press clears the draft without submitting or exiting.
+    expect(await draft.terminal.snapshot()).not.toContain('draft')
+    expect(draft.harness.agent.followups).toHaveLength(0)
+    expect(draft.exits).toEqual([])
+    draft.terminal.send('\x03')
+    await new Promise(resolve => setTimeout(resolve, 50))
+    expect(draft.exits).toEqual([0])
+    await draft.harness.ctx.fiber.dispose()
+    await draft.terminal.dispose()
+
+    const empty = await setup()
+    empty.terminal.send('\x03')
+    await empty.terminal.waitForFrame()
+    expect(await empty.terminal.snapshot()).toContain('press Ctrl+C again to exit')
+    expect(empty.exits).toEqual([])
+    empty.terminal.send('\x03')
+    await new Promise(resolve => setTimeout(resolve, 50))
+    expect(empty.exits).toEqual([0])
+    expect(empty.harness.agent.disposed).toEqual([true])
+    await empty.harness.ctx.fiber.dispose()
+    await empty.terminal.dispose()
+  })
+
+  it('ignores Kitty Ctrl+C release events and exits on the second physical press', async () => {
+    const { harness, terminal, exits } = await setup()
+    harness.agent.status = 'running'
+    emitAgentEvent(harness.ctx, harness.agent, 'agent/status', { status: 'running' })
+    await terminal.waitForFrame()
+    const press = '\x1b[99;5:1u'
+    const release = '\x1b[99;5:3u'
+    terminal.send(press)
+    await new Promise(resolve => setTimeout(resolve, 20))
+    expect(harness.agent.cancelled).toEqual([{ kind: 'user' }])
+    expect(exits).toEqual([])
+    terminal.send(release)
+    await new Promise(resolve => setTimeout(resolve, 20))
+    expect(harness.agent.cancelled).toEqual([{ kind: 'user' }])
+    expect(exits).toEqual([])
+    terminal.send(press)
+    harness.agent.status = 'idle'
+    await new Promise(resolve => setTimeout(resolve, 50))
+    expect(exits).toEqual([0])
+    await harness.ctx.fiber.dispose()
+    await terminal.dispose()
+  })
+
+  it('treats a Ctrl+C after the double-press window as a fresh single press', async () => {
+    let clock = 0
+    const { harness, terminal, exits } = await setup({
+      runtime: { now: () => clock },
+    })
     terminal.send('\x03')
     await new Promise(resolve => setTimeout(resolve, 20))
-    expect(harness.agent.cancelled).toHaveLength(2)
-    harness.agent.status = 'idle'
-    emitAgentEvent(harness.ctx, harness.agent, 'agent/status', { status: 'idle' })
-    await terminal.waitForFrame()
-    terminal.send('draft')
-    await terminal.waitForFrame()
+    expect(exits).toEqual([])
+    clock += 2_000
     terminal.send('\x03')
-    await terminal.waitForFrame()
-    expect(harness.agent.followups).toHaveLength(0)
-    // Exiting stops the TUI, so no further frame is produced; observe the
-    // exit through the recorded calls instead.
+    await new Promise(resolve => setTimeout(resolve, 20))
+    expect(exits).toEqual([])
     terminal.send('\x03')
     await new Promise(resolve => setTimeout(resolve, 50))
     expect(exits).toEqual([0])
-    expect(harness.agent.disposed).toEqual([true])
-    expect(terminal.stopped).toBe(1)
-    expect(terminal.title).toBe('DeepSeek Harness')
+    await harness.ctx.fiber.dispose()
+    await terminal.dispose()
+  })
+
+  it('breaks the double-press run when another key lands between the two Ctrl+C presses', async () => {
+    const { harness, terminal, exits } = await setup()
+    terminal.send('\x03')
+    await terminal.waitForFrame()
+    expect(await terminal.snapshot()).toContain('press Ctrl+C again to exit')
+    expect(exits).toEqual([])
+    terminal.send('x')
+    await terminal.waitForFrame()
+    expect(await terminal.snapshot()).not.toContain('press Ctrl+C again to exit')
+    terminal.send('\x03')
+    await new Promise(resolve => setTimeout(resolve, 20))
+    expect(exits).toEqual([])
+    terminal.send('\x03')
+    await new Promise(resolve => setTimeout(resolve, 50))
+    expect(exits).toEqual([0])
     await harness.ctx.fiber.dispose()
     await terminal.dispose()
   })

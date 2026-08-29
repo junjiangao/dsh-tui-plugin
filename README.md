@@ -43,7 +43,7 @@ The patch layer mounts the **agent-presets roster** (default `standard`), the `c
 
   The script indexes the harness checkout (`vendor/*` plus `packages/*/*`), injects `link:` overrides and `linkWorkspacePackages` into a managed block of `pnpm-workspace.yaml`, and verifies every needed package is present. The harness checkout must have its own `pnpm install` completed first — linked packages resolve their transitive dependencies through the harness tree. `pnpm run link:harness:revert` restores the committed manifest state (run it before committing `pnpm-workspace.yaml`). CI (`.github/workflows/ci.yml`) reproduces the same flow against a pinned harness ref.
 - **Lockfiles are environment-local.** `pnpm-lock.yaml` embeds absolute `link:` paths into the harness checkout, so it is gitignored; every environment (and CI) regenerates its own.
-- **Verification gates.** `pnpm lint` (oxlint) · `pnpm typecheck` (tsc × 2) · `pnpm test` (vitest, 314 tests incl. 13 keyless snapshots) · `pnpm build` (tsc declaration emit + tsdown, both packages). The CI verifies against the pinned harness ref `b150a551b8` (dsh-v0.1.1-rc.2).
+- **Verification gates.** `pnpm lint` (oxlint) · `pnpm typecheck` (tsc × 2) · `pnpm test` (vitest, 321 tests incl. 13 keyless snapshots) · `pnpm build` (tsc declaration emit + tsdown, both packages). The CI verifies against the pinned harness ref `b150a551b8` (dsh-v0.1.1-rc.2).
 
 ## Source provenance
 

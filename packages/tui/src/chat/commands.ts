@@ -139,7 +139,7 @@ export function createCommandController(deps: CommandControllerDeps): CommandCon
     deps.appendNotice([
       'Keyboard shortcuts',
       'Enter send • Up/Down prompt history • Esc cancel turn',
-      'Ctrl+O cycle cards (collapse/expand/hide) • Ctrl+R toggle reasoning • Ctrl+D exit',
+      'Ctrl+O cycle cards (collapse/expand/hide) • Ctrl+R toggle reasoning • Ctrl+C×2/Ctrl+D exit',
       '',
       ...commandLines,
     ].join('\n'), 'info')

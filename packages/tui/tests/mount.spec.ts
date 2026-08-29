@@ -3,6 +3,7 @@
  * the startup values, and a loud failure when the tree has no agent factory.
  */
 
+import type {} from '@deepseek-ai/dsh-agent-presets'
 import { Context } from '@deepseek-ai/cordis'
 import { describe, expect, it } from 'vitest'
 import AgentRegistry from '@deepseek-ai/dsh-agent'
@@ -133,4 +134,116 @@ describe('mountTui', () => {
     await second.fiber.dispose()
     await secondTerminal.dispose()
   })
+
+  it('mounts the roster default on a fresh create and records it on the header', async () => {
+    const ctx = new Context()
+    await ctx.plugin(SessionStore)
+    await ctx.plugin(AgentRegistry)
+    await mountChannelServices(ctx)
+    const { roster, calls } = presetRoster()
+    ctx.provide('agentPresets', roster)
+    const installed = installFakeAgentFactory(ctx)
+    const terminal = new HeadlessTerminal(80, 24)
+    const exits: number[] = []
+    mountTui(ctx, { sessionId: 'fresh-preset' }, {
+      terminal,
+      exit: code => void exits.push(code),
+    })
+    await terminal.waitForFrame()
+    expect(calls.mount).toEqual(['standard'])
+    expect(installed.agents[0]?.session.header.agentPreset).toBe('standard')
+    expect(exits).toEqual([])
+    await ctx.fiber.dispose()
+    await terminal.dispose()
+  })
+
+  it('mounts the --preset id on a fresh create', async () => {
+    const ctx = new Context()
+    await ctx.plugin(SessionStore)
+    await ctx.plugin(AgentRegistry)
+    await mountChannelServices(ctx)
+    const { roster, calls } = presetRoster()
+    ctx.provide('agentPresets', roster)
+    ctx.provide(TUI_STARTUP_SERVICE, { preset: 'minimal' })
+    const installed = installFakeAgentFactory(ctx)
+    const terminal = new HeadlessTerminal(80, 24)
+    mountTui(ctx, { sessionId: 'fresh-minimal' }, {
+      terminal,
+      exit: () => {},
+    })
+    await terminal.waitForFrame()
+    expect(calls.mount).toEqual(['minimal'])
+    expect(installed.agents[0]?.session.header.agentPreset).toBe('minimal')
+    await ctx.fiber.dispose()
+    await terminal.dispose()
+  })
+
+  it('resumes from the preset switch the session log recorded', async () => {
+    const ctx = new Context()
+    await ctx.plugin(SessionStore)
+    await ctx.plugin(AgentRegistry)
+    await mountChannelServices(ctx)
+    const { roster, calls } = presetRoster()
+    ctx.provide('agentPresets', roster)
+    ctx.provide(TUI_STARTUP_SERVICE, { resumeSessionId: 'persisted-preset' })
+    const installed = installFakeAgentFactory(ctx, (_agent, session) => {
+      session.append('agent-preset/selected', { agentPreset: 'code' })
+    })
+    const terminal = new HeadlessTerminal(80, 24)
+    mountTui(ctx, { sessionId: 'persisted-preset' }, {
+      terminal,
+      exit: () => {},
+    })
+    await terminal.waitForFrame()
+    expect(String(installed.agents[0]?.id)).toBe('persisted-preset')
+    expect(calls.mount).toEqual(['code'])
+    await ctx.fiber.dispose()
+    await terminal.dispose()
+  })
+
+  it('fails a resume whose --preset contradicts the recorded switch before taking over the terminal', async () => {
+    const ctx = new Context()
+    await ctx.plugin(SessionStore)
+    await ctx.plugin(AgentRegistry)
+    await mountChannelServices(ctx)
+    const { roster } = presetRoster()
+    ctx.provide('agentPresets', roster)
+    ctx.provide(TUI_STARTUP_SERVICE, { resumeSessionId: 'persisted-conflict', preset: 'minimal' })
+    installFakeAgentFactory(ctx, (_agent, session) => {
+      session.append('agent-preset/selected', { agentPreset: 'code' })
+    })
+    const terminal = new HeadlessTerminal(80, 24)
+    const exits: number[] = []
+    mountTui(ctx, { sessionId: 'persisted-conflict' }, {
+      terminal,
+      exit: code => void exits.push(code),
+    })
+    await new Promise(resolve => setTimeout(resolve, 0))
+    expect(exits).toEqual([1])
+    expect(terminal.started).toBe(0)
+    const snapshot = await terminal.snapshot()
+    expect(snapshot).toContain('agent preset conflict')
+    await ctx.fiber.dispose()
+    await terminal.dispose()
+  })
 })
+
+/** A minimal preset-roster stub recording resolve/mount calls; list/recompose are present for the channel controller. */
+function presetRoster() {
+  const calls = { resolve: [] as Array<string | undefined>, mount: [] as string[] }
+  const roster = {
+    defaultId: 'standard',
+    list: async () => [],
+    resolve: async (id?: string) => {
+      calls.resolve.push(id)
+      const picked = id ?? 'standard'
+      return { id: picked, trust: 'system', path: `/ship/${picked}/agent.cordis.yml` }
+    },
+    mount: async (_agentCtx: unknown, id: string) => {
+      calls.mount.push(id)
+    },
+    recompose: async (_agentCtx: unknown, id: string) => ({ id, trust: 'system', path: `/ship/${id}/agent.cordis.yml` }),
+    composedPreset: (_agentCtx: unknown) => undefined,
+  }
+  return { roster, calls }
+}

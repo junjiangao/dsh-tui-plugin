@@ -11,7 +11,27 @@
 import { Command } from 'commander'
 import type { Context } from '@deepseek-ai/cordis'
 import { parseCmdline } from '@deepseek-ai/dsh-cmdline'
-import { TUI_STARTUP_SERVICE, type TuiStartupValues } from '@deepseek-ai/dsh-tui'
+
+/**
+ * The service key the tui row's lazy config reads. Duplicated here instead of
+ * imported from @deepseek-ai/dsh-tui so the root bundle's startup entry stays
+ * self-contained; the spec locks the two copies equal.
+ */
+export const TUI_STARTUP_SERVICE = 'tuiStartup'
+
+/** Invocation values the tui row reads; mirrors dsh-tui's TuiStartupValues. */
+export interface TuiStartupValues {
+  /** Persisted session to resume, from `--resume`; absent mints a fresh one. */
+  resumeSessionId?: string
+  /** Explicit id for the fresh session this invocation creates, from `--session`. */
+  sessionId?: string
+  /** Provider/model route, from `--model <provider>/<model>`; absent keeps the session default. */
+  model?: string
+  /** Tool presentation mode, from `--tool-mode`; absent keeps the deployment default. */
+  toolMode?: 'native' | 'code' | 'both'
+  /** Agent preset id, from `--preset`; absent mounts the roster default. */
+  preset?: string
+}
 
 /** Stable Cordis plugin name. */
 export const name = 'tui-startup'
@@ -25,6 +45,7 @@ interface TuiOptions {
   session?: string
   model?: string
   toolMode?: string
+  preset?: string
 }
 
 /**
@@ -52,6 +73,7 @@ function tuiCommand(): Command {
     .option('--session <sessionId>', 'explicit id for the fresh session this invocation creates')
     .option('--model <provider>/<model>', 'provider/model route for this session, e.g. deepseek-official/deepseek-v4-pro')
     .option('--tool-mode <native|code|both>', 'tool presentation mode; overrides DSH_TOOLS_MODE and the schema default')
+    .option('--preset <id>', 'compose this session from the named agent preset; absent mounts the roster default')
     .addHelpText('after', `
 Examples:
   dsh --profile tui                        start a fresh session
@@ -86,11 +108,15 @@ export function apply(ctx: Context): void {
     if (options.model !== undefined && !options.model.includes('/')) {
       program.error(`error: --model must be <provider>/<model>, got ${JSON.stringify(options.model)}`)
     }
+    if (options.preset !== undefined && !/^[a-z0-9][a-z0-9-]*$/u.test(options.preset)) {
+      program.error(`error: --preset must be a preset id ([a-z0-9][a-z0-9-]*), got ${JSON.stringify(options.preset)}`)
+    }
     ctx.provide(TUI_STARTUP_SERVICE, {
       ...options.resume !== undefined && { resumeSessionId: options.resume },
       ...options.session !== undefined && { sessionId: options.session },
       ...options.model !== undefined && { model: options.model },
       ...toolMode !== undefined && { toolMode },
+      ...options.preset !== undefined && { preset: options.preset },
     } satisfies TuiStartupValues)
   })
   parseCmdline(ctx, program)

@@ -53,6 +53,7 @@
   "peerDependencies": {
     "@deepseek-ai/cordis": "^0.1.0-rc.5",
     "@deepseek-ai/schemastery": "^0.1.0-rc.5",
+    "@deepseek-ai/dsh-agent-presets": "^0.1.0-rc.5",
     "@deepseek-ai/dsh-compaction": "^0.1.0-rc.5",
     "@deepseek-ai/dsh-commands": "^0.1.0-rc.5",
     "@deepseek-ai/dsh-goal": "^0.1.0-rc.5",
@@ -72,6 +73,7 @@
     "@deepseek-ai/cordis-plugin-loader": "^0.1.0-rc.5",
     "@deepseek-ai/dsh-agent": "^0.1.0-rc.5",
     "@deepseek-ai/dsh-agent-loop": "^0.1.0-rc.5",
+    "@deepseek-ai/dsh-agent-presets": "^0.1.0-rc.5",
     "@deepseek-ai/dsh-command-goal": "^0.1.0-rc.5",
     "@deepseek-ai/dsh-commands": "^0.1.0-rc.5",
     "@deepseek-ai/dsh-compaction": "^0.1.0-rc.5",

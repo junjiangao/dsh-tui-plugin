@@ -22,6 +22,8 @@ export interface TuiStartupValues {
   model?: string
   /** Tool presentation mode, from `--tool-mode`; absent keeps the deployment default. */
   toolMode?: 'native' | 'code' | 'both'
+  /** Agent preset id, from `--preset`; absent mounts the roster default (or nothing without a roster). */
+  preset?: string
 }
 
 declare module '@deepseek-ai/cordis' {

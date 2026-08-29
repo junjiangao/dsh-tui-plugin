@@ -1,0 +1,183 @@
+# The dsh-tui-plugin bundle patch: the interactive full-screen terminal
+# surface over the dsh-base layer, for the git-installed root package
+# (`dsh plugin --profile tui add github:junjiangao/dsh-tui-plugin`). Applied
+# after dsh-base's insert; rows here override base rows by id, with the
+# profile's own cordis.patch.yml and any --patch overlays still to come.
+#
+# The tui and tui-startup rows resolve through THIS package's exports map
+# (dsh-tui-plugin/tui, dsh-tui-plugin/startup): both entries are prebuilt,
+# self-contained ESM bundles committed under lib/, so a git install needs no
+# build step and the pi-tui editor patch ships baked into the tui bundle.
+#
+# The tui-startup plugin injects `cmdlineArgs` and provides `tuiStartup` as an
+# ordinary Cordis service. Rows configured from flags inject that service, so
+# Loader resolves their expressions only after it exists; `dsh --profile tui
+# --help` provides nothing, so no row waits on it and the terminal never takes
+# over.
+#
+# Agent presets: the roster row below mounts one preset per session (default
+# `standard`); the TUI joins it in the agent factory's setup hook and can
+# recompose a blank session to another preset. The host-plane agent rows the
+# base keeps for a preset-less surface are disabled at the bottom, exactly as
+# the web surface does, so the mounted preset is the only tool set the model
+# sees.
+
+# ── surface-specific values the base deliberately omits ─────────────────────
+
+- id: system-prompt
+  config:
+    persona: >-
+      You are a coding agent powered by the {{model}} model. Your working directory is {{cwd}}.
+
+- id: tools
+  inject: [tuiStartup]
+  config:
+    # The --tool-mode flag opts this process into a presentation mode; the
+    # env seam keeps the headless/web convention for scripted launches.
+    mode: !!js ctx.tuiStartup.toolMode ?? process.env.DSH_TOOLS_MODE
+
+# ── terminal-only rows ──────────────────────────────────────────────────────
+
+- insert:
+    # The projection registry plus its durable checkpoint cache (over the
+    # same storage root the web surface uses): /resume reads titles from the
+    # zero-I/O checkpoint row or a tail-only cold read instead of scanning
+    # whole logs, and checkpoints written by either surface serve both.
+    - id: storage
+      name: '@deepseek-ai/dsh-storage'
+
+    - id: storage-json
+      name: '@deepseek-ai/dsh-storage-json'
+      config:
+        root: !!js dshHomePath('storages')
+
+    - id: storage-domain
+      name: '@deepseek-ai/dsh-storage-domain'
+      config:
+        backend: json
+
+    - id: session-projection-cache
+      name: '@deepseek-ai/dsh-session-projection-cache'
+      config:
+        writeEveryEvents: 200
+        writeIntervalMs: 5000
+
+    - id: session-reference
+      name: '@deepseek-ai/dsh-session-reference'
+
+    # The keyboard-backed provider behind ask_user_question and the plan-mode
+    # review. The preset roster mounts its own per-preset copy (standard, code
+    # and cordis all carry one), so the TUI no longer mounts it globally — a
+    # session on a preset without it simply lacks the tool, exactly like web.
+
+    # Ordinary provider for the parsed TUI flags. Its plugin-level injection
+    # waits for cmdlineArgs; no launcher metadata or special row kind is needed.
+    - id: tui-startup
+      name: 'dsh-tui-plugin/startup'
+
+    # The interactive front door. Its lazy config reads the launcher-owned
+    # identity from tuiStartup, so --help (which provides nothing) never mounts
+    # the terminal.
+    - id: tui
+      name: 'dsh-tui-plugin/tui'
+      inject: [tuiStartup]
+      config:
+        sessionId: !!js ctx.tuiStartup.resumeSessionId ?? ctx.tuiStartup.sessionId ?? 'main'
+        model: !!js ctx.tuiStartup.model
+        showReasoning: true
+        maxToolOutputLines: 6
+
+    # The preset roster. `config/agent-presets/` ships with the deployment
+    # (system trust) and `$DSH_HOME/.agent-presets` holds user-authored presets;
+    # the CLI patches the shipped root into this row whenever it is present.
+    - id: agent-presets
+      name: '@deepseek-ai/dsh-agent-presets'
+      config:
+        default: standard
+
+    # The worker-thread code runtime behind the `code` preset's presentation
+    # tool; composed eagerly like the web surface so switching to `code` works.
+    - id: code-runtime
+      name: '@deepseek-ai/dsh-code-runtime-worker-thread'
+
+# ── the agent plane moves behind agent presets ─────────────────────────────
+#
+# The base keeps every model-facing row on the host plane for a preset-less
+# surface; once the roster composes, each session's preset mounts its own set
+# (agent → preset → global scope chain). Disable the host-plane copies here,
+# mirroring the web surface, so the mounted preset is the only tool set the
+# model sees. Disabling rather than deleting is deliberate: the base is shared,
+# and a row absent from this overlay would silently reappear the day someone
+# reorders the base composition.
+
+- id: hmr
+  disabled: true
+
+- id: tool-bash
+  disabled: true
+
+- id: tool-pwsh
+  disabled: true
+
+- id: tool-jobs
+  disabled: true
+
+- id: tool-fs
+  disabled: true
+
+- id: tool-fs-search
+  disabled: true
+
+- id: tool-str-replace-editor
+  disabled: true
+
+- id: skill-filesystem
+  disabled: true
+
+- id: tool-skill
+  disabled: true
+
+- id: tool-goal
+  disabled: true
+
+- id: plan-mode
+  disabled: true
+
+- id: compaction-basic
+  disabled: true
+
+- id: command-compact
+  disabled: true
+
+- id: tool-result-pruner
+  disabled: true
+
+- id: tool-subagent-control
+  disabled: true
+
+- id: tool-subagent-list-agents
+  disabled: true
+
+- id: tool-subagent
+  disabled: true
+
+- id: tool-subagent-fork
+  disabled: true
+
+- id: workflow-worker-thread
+  disabled: true
+
+- id: tool-workflow
+  disabled: true
+
+- id: tool-ralph
+  disabled: true
+
+- id: agent-instructions
+  disabled: true
+
+- id: tool-todo
+  disabled: true
+
+- id: tool-web
+  disabled: true

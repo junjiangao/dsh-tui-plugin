@@ -82,6 +82,7 @@ import { createQuestionQueue, type QuestionQueue } from './chat/questions.ts'
 import { installApprovalAnswerer } from './chat/approval.ts'
 import { createCommandController, goalStatusText, type CommandController } from './chat/commands.ts'
 import { createModelController, type ModelController } from './chat/model-command.ts'
+import { createPresetController, sessionPreset, type PresetController } from './chat/presets.ts'
 import { createResumeController, type ResumeController } from './chat/resume.ts'
 import { WorkspaceFileSearch } from './chat/file-autocomplete.ts'
 import { cacheHitRate, formatTokens, recordEventUsage, sessionTokens } from './chat/tokens.ts'
@@ -920,6 +921,7 @@ export function createTuiChat(
       modelController.resetContextResolution()
       modelController.clearOverlay()
       modelController.detach()
+      presetController.clearOverlay()
       await commands.dispose()
       fileSearch.dispose()
       disposeApproval()
@@ -1023,6 +1025,19 @@ export function createTuiChat(
     requestRender,
     isDisposed: () => disposed,
   })
+  // The preset controller owns the /preset picker and the blank-session
+  // recompose gate; the roster service itself is optional (a profile without
+  // the agent-presets row keeps the preset-less host plane).
+  const presetController: PresetController = createPresetController({
+    ctx,
+    agent,
+    resolved,
+    palette,
+    overlayManager,
+    appendNotice,
+    requestRender,
+    isDisposed: () => disposed,
+  })
   // The /status card renders one point-in-time diagnostic snapshot: session
   // identity, agent progress, token buckets with cache rate, context
   // occupancy, and activity timestamps.
@@ -1055,6 +1070,7 @@ export function createTuiChat(
         ['Title', displayText(sessionTitle ?? 'untitled')],
         ['Directory', displayText(cwd)],
         ['Model', `${model} ${palette.dim(`(effort ${effort}; reasoning blocks ${showReasoning ? 'shown' : 'hidden'})`)}`],
+        ['Preset', displayText(ctx.get('agentPresets')?.composedPreset(agent.ctx) ?? 'none')],
       ],
       [
         ['Agent', [
@@ -1134,6 +1150,7 @@ export function createTuiChat(
     fileSearch,
     referenceResolver,
     queueModelCommand: (raw) => { modelController.queueModelCommand(raw) },
+    queuePresetCommand: (raw) => { presetController.queuePresetCommand(raw) },
     showResume: () => { resume.showResume() },
     showStatusCard,
     loadHistory,
@@ -1217,17 +1234,49 @@ async function run(ctx: Context, config: Config, runtime: TuiRuntime): Promise<v
   const installSelection = (agentCtx: Context): void => {
     installModelSelection(agentCtx, modelSelection)
   }
+  // The preset roster composes only when the profile mounts the
+  // agent-presets row; without it the channel keeps the preset-less
+  // host-plane behavior (setup just installs the model selection).
+  const presets = ctx.get('agentPresets')
+  const requestedPreset = startup?.preset
+  // The creation preset is resolved BEFORE the factory mints the session so
+  // the durable header records it; a bad --preset fails here, before any
+  // terminal takeover.
+  const creationPreset = presets === undefined ? undefined : await presets.resolve(requestedPreset)
   const handle = startup?.resumeSessionId !== undefined
     ? await ctx.agents.resume({
       resumeSessionId: SessionId(startup.resumeSessionId),
       ...(agentOptions === undefined ? {} : { agentOptions }),
-      setup: installSelection,
+      setup: async (agentCtx) => {
+        installSelection(agentCtx)
+        if (presets === undefined) return
+        // The LOG wins over the creation header: a session that switched
+        // presets while blank recorded the change, and its history was
+        // produced under the newer composition. A --preset that contradicts
+        // the record fails the resume before the terminal mounts.
+        const subject = agentCtx.agent
+        /* v8 ignore next -- the factory contract mints agentCtx around the agent before setup runs */
+        if (subject === undefined) throw new Error('tui: agent setup ran without an agent context')
+        const recorded = sessionPreset(subject)
+        if (requestedPreset !== undefined && recorded !== undefined && recorded !== requestedPreset) {
+          throw new Error(`agent preset conflict: session "${startup.resumeSessionId}" runs preset "${recorded}", not "${requestedPreset}"`)
+        }
+        const preset = await presets.resolve(recorded ?? requestedPreset)
+        await presets.mount(agentCtx, preset.id)
+      },
     })
     : await ctx.agents.create({
       sessionId: SessionId(config.sessionId ?? 'main'),
-      meta: { cwd: process.cwd() },
+      ...(creationPreset === undefined
+        ? { meta: { cwd: process.cwd() } }
+        : { meta: { cwd: process.cwd(), agentPreset: creationPreset.id } }),
       ...(agentOptions === undefined ? {} : { agentOptions }),
-      setup: installSelection,
+      setup: async (agentCtx) => {
+        installSelection(agentCtx)
+        if (presets !== undefined && creationPreset !== undefined) {
+          await presets.mount(agentCtx, creationPreset.id)
+        }
+      },
     })
   // The logged request header wins over the invocation route; both are only
   // the starting point the selector can change.

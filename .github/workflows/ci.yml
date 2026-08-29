@@ -33,9 +33,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 40
     env:
-      # Pin the harness plane so the linked @deepseek-ai/* set (0.1.0-rc.5)
-      # stays reproducible; bump deliberately when the peers move.
-      DSH_HARNESS_REF: 47f943859bef60e4160492346772ded9b24f765a
+      # Pin the harness plane so the linked @deepseek-ai/* set stays
+      # reproducible; bump deliberately when the peers move.
+      DSH_HARNESS_REF: b150a551b8d465e31e418e1b2eaf5e79bbb7d28e
       DSH_HARNESS_ROOT: /home/runner/harness
     steps:
       - uses: actions/checkout@v4
@@ -63,3 +63,6 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm build
+      # The root lib/ bundles are COMMITTED (a git install runs no build);
+      # a rebuild that changes them means the artifacts went stale.
+      - run: git diff --exit-code lib/

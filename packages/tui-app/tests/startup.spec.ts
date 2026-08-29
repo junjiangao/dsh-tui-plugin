@@ -12,9 +12,9 @@ import { Context } from '@deepseek-ai/cordis'
 import Loader from '@deepseek-ai/cordis-plugin-loader'
 import Include from '@deepseek-ai/cordis-plugin-include'
 import { internals, provideCmdline } from '@deepseek-ai/dsh-cmdline'
-import { TUI_STARTUP_SERVICE, type TuiStartupValues } from '@deepseek-ai/dsh-tui'
+import { TUI_STARTUP_SERVICE as TUI_SERVICE_KEY } from '@deepseek-ai/dsh-tui'
 import { afterEach, describe, expect, it } from 'vitest'
-import { apply } from '../src/startup.ts'
+import { TUI_STARTUP_SERVICE, apply, type TuiStartupValues } from '../src/startup.ts'
 
 /** What one boot of the fixture tree observed. */
 interface Observed {
@@ -94,9 +94,15 @@ export const apply = ctx => globalThis.__tuiStartupApply(ctx)
 }
 
 describe('tui command-line provider', () => {
+  it('publishes under the same service key the tui row reads', () => {
+    // The root bundle's startup entry is self-contained and duplicates the
+    // key; any drift here would silently disconnect the flags from the row.
+    expect(TUI_STARTUP_SERVICE).toBe(TUI_SERVICE_KEY)
+  })
+
   it('publishes every named flag into the tui-row config', async () => {
-    const { startup, observed } = await bootStartup(['--resume', 'sess-1', '--model', 'deepseek-official/deepseek-v4-pro', '--tool-mode', 'code'])
-    expect(startup).toEqual({ resumeSessionId: 'sess-1', model: 'deepseek-official/deepseek-v4-pro', toolMode: 'code' })
+    const { startup, observed } = await bootStartup(['--resume', 'sess-1', '--model', 'deepseek-official/deepseek-v4-pro', '--tool-mode', 'code', '--preset', 'minimal'])
+    expect(startup).toEqual({ resumeSessionId: 'sess-1', model: 'deepseek-official/deepseek-v4-pro', toolMode: 'code', preset: 'minimal' })
     expect(observed.tuiConfig).toEqual({ sessionId: 'sess-1', model: 'deepseek-official/deepseek-v4-pro' })
     expect(observed.exits).toEqual([])
   })
@@ -116,6 +122,7 @@ describe('tui command-line provider', () => {
     { args: ['--resume', 'a', '--session', 'b'], reason: 'resume and session conflict' },
     { args: ['--tool-mode', 'hybrid'], reason: 'invalid tool mode' },
     { args: ['--model', 'novalue'], reason: 'model without a provider' },
+    { args: ['--preset', 'Not-A-Valid-Id'], reason: 'preset id that is not a roster directory name' },
   ])('rejects $reason', async ({ args }) => {
     const { startup, observed } = await bootStartup(args)
     expect(observed.out).toContain('error:')

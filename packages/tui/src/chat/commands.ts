@@ -35,6 +35,8 @@ export interface CommandControllerDeps {
   readonly referenceResolver: SessionReferenceResolver | undefined
   /** Queue a `/model` line for the model controller. */
   queueModelCommand(raw: string): void
+  /** Queue a `/preset` line for the preset controller. */
+  queuePresetCommand(raw: string): void
   /** Open the `/resume` session picker. */
   showResume(): void
   /** Append the session-status diagnostic card to the transcript. */
@@ -176,6 +178,15 @@ export function createCommandController(deps: CommandControllerDeps): CommandCon
       input: { hint: '[provider/]model' },
       handler: ({ rawInput }) => {
         deps.queueModelCommand(rawInput)
+        return { kind: 'success' }
+      },
+    })
+    commandCtx.commands.register({
+      name: 'preset',
+      description: 'Show this session\'s agent preset; switch with /preset [id] (blank sessions only)',
+      input: { hint: '[id]' },
+      handler: ({ rawInput }) => {
+        deps.queuePresetCommand(rawInput)
         return { kind: 'success' }
       },
     })

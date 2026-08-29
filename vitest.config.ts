@@ -14,6 +14,6 @@ export default defineConfig({
     },
   },
   test: {
-    include: ['packages/tui/tests/**/*.spec.ts', 'packages/tui-app/tests/**/*.spec.ts'],
+    include: ['tests/**/*.spec.ts', 'packages/tui/tests/**/*.spec.ts', 'packages/tui-app/tests/**/*.spec.ts'],
   },
 })

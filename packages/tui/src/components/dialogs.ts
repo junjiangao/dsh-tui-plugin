@@ -417,6 +417,81 @@ export class ModelDialog implements Component {
   }
 }
 
+/** One preset roster row surfaced in the preset selector. */
+export interface PresetChoice {
+  /** Preset id (the roster directory name). */
+  id: string
+  /** Display name from the preset metadata; absent falls back to the id. */
+  label: string
+  /** Optional metadata description. */
+  description?: string
+  /** Where the preset ships from: the deployment or the user's home. */
+  trust: 'system' | 'user'
+  /** Discovery-reported reason the preset cannot compose; selecting it still fails on mount. */
+  broken?: string
+}
+
+/** Keyboard agent-preset selector: a bordered list over the roster with the current preset marked. */
+export class PresetDialog implements Component {
+  private list: SelectList
+  private readonly items: Map<string, SelectItem>
+
+  constructor(
+    choices: readonly PresetChoice[],
+    current: string | undefined,
+    maxVisible: number,
+    private readonly palette: Palette,
+    private readonly done: (id: string) => void,
+    private readonly cancel: () => void,
+  ) {
+    this.items = new Map()
+    for (const choice of choices) {
+      this.items.set(choice.id, {
+        value: choice.id,
+        label: displayText(choice.label),
+        description: [
+          choice.trust === 'user' ? 'user' : 'shipped',
+          ...choice.broken === undefined ? [] : [`broken: ${choice.broken}`],
+          ...choice.description === undefined ? [] : [choice.description],
+          ...choice.id === current ? ['current'] : [],
+        ].join(' — '),
+      })
+    }
+    const items = [...this.items.values()]
+    this.list = new SelectList(items, maxVisible, selectTheme(this.palette))
+    const index = current === undefined ? 0 : items.findIndex(item => item.value === current)
+    this.list.setSelectedIndex(Math.max(0, index))
+    this.list.onSelect = (item) => { this.done(item.value) }
+    this.list.onCancel = this.cancel
+  }
+
+  invalidate(): void {
+    this.list.invalidate()
+  }
+
+  handleInput(data: string): void {
+    if (matchesKey(data, Key.escape)) {
+      this.cancel()
+    } else if (
+      matchesKey(data, Key.up)
+      || matchesKey(data, Key.down)
+      || matchesKey(data, Key.enter)
+    ) {
+      this.list.handleInput(data)
+    }
+    this.invalidate()
+  }
+
+  render(width: number): string[] {
+    const innerWidth = Math.max(1, width - 4)
+    return renderDialog('Select agent preset', [
+      ...this.list.render(innerWidth),
+      '',
+      this.palette.dim('↑/↓ move • Enter select • Esc'),
+    ], width, this.palette)
+  }
+}
+
 /** A resume selector row summarizing one session from metadata and its folded title. */
 export interface ResumeCandidate {
   record: SessionRecord

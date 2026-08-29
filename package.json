@@ -1,12 +1,31 @@
 {
   "name": "dsh-tui-plugin",
-  "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0-rc.5",
+  "type": "module",
   "packageManager": "pnpm@11.3.0",
-  "description": "Standalone dsh TUI plugin project, extracted from the deepseek-harness worktree (not merged upstream)",
+  "description": "The dsh interactive terminal profile: install with `dsh plugin --profile tui add github:junjiangao/dsh-tui-plugin`",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/junjiangao/dsh-tui-plugin.git"
+  },
+  "engines": {
+    "node": "^22.19.0 || >=24.0.0"
+  },
+  "exports": {
+    "./tui": "./lib/tui.mjs",
+    "./startup": "./lib/startup.mjs",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib/tui.mjs",
+    "lib/startup.mjs",
+    "cordis.patch.yml",
+    "README.md"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
   },
   "scripts": {
     "link:harness": "node scripts/link-harness.mjs",
@@ -14,10 +33,13 @@
     "lint": "oxlint",
     "test": "vitest run",
     "typecheck": "tsc -p packages/tui/tsconfig.json --noEmit && tsc -p packages/tui-app/tsconfig.json --noEmit",
-    "build": "pnpm --filter @deepseek-ai/dsh-tui run build && pnpm --filter @deepseek-ai/dsh-tui-app run build"
+    "build": "pnpm --filter @deepseek-ai/dsh-tui run build && pnpm --filter @deepseek-ai/dsh-tui-app run build && tsdown -c tsdown.root.config.ts",
+    "build:bundle": "tsdown -c tsdown.root.config.ts"
   },
   "devDependencies": {
+    "@deepseek-ai/cordis-plugin-include": "^1.0.6",
     "@types/node": "^22.20.0",
+    "js-yaml": "^4.3.2",
     "oxlint": "1.76.0",
     "tsdown": "^0.22.2",
     "typescript": "^6.0.3",

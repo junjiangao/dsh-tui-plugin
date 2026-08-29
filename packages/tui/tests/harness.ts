@@ -47,6 +47,8 @@ export interface TuiHarnessOptions {
   tokenMeter?: unknown
   /** Session-reference resolver stub, provided before the channel mounts. */
   sessionReferenceResolver?: unknown
+  /** Agent-preset roster stub, provided before the channel mounts. */
+  agentPresets?: unknown
 }
 
 export interface TuiHarness<TerminalType extends Terminal, Exit extends (code: number) => void> {
@@ -128,17 +130,19 @@ export function createFakeAgent(
     discarded() {},
     claimed() {},
   })
+  // A bare root that provides the harness command runtime itself: the
+  // agent-scoped fiber the channel registers its commands on resolves the
+  // same instance the channel executes, so registrations land in the
+  // instance's effective view. It also provides the agent it scopes, matching
+  // the real loop's extend({ agent }), so setup hooks can read the agent.
+  const agentCtx = agentCommandCtx(ctx)
   const agent: FakeAgent = {
     id: session.id,
     options,
     session,
     inbox,
     status,
-    // A bare root that provides the harness command runtime itself: the
-    // agent-scoped fiber the channel registers its commands on resolves the
-    // same instance the channel executes, so registrations land in the
-    // instance's effective view.
-    ctx: agentCommandCtx(ctx),
+    ctx: agentCtx,
     followups,
     steered,
     steeredMessages,
@@ -166,6 +170,7 @@ export function createFakeAgent(
       injected.push(message.content)
     },
   }
+  agentCtx.provide('agent', agent as never)
   ctx.agents.register(agent)
   return agent
 }
@@ -176,7 +181,10 @@ export function createFakeAgent(
  * @param ctx - context carrying the agent registry.
  * @returns the factory and a view of every handle it produced.
  */
-export function installFakeAgentFactory(ctx: Context): {
+export function installFakeAgentFactory(
+  ctx: Context,
+  prepare?: (agent: FakeAgent, session: Session) => void,
+): {
   factory: AgentFactory
   handles: AgentHandle[]
   agents: FakeAgent[]
@@ -189,6 +197,9 @@ export function installFakeAgentFactory(ctx: Context): {
         ...(options.meta === undefined ? {} : { meta: options.meta }),
       })
       const agent = createFakeAgent(ownerCtx, session, options.agentOptions)
+      // Seed the session log (e.g. a recorded preset switch) before setup
+      // runs, the same order the real factory reads it.
+      prepare?.(agent, session)
       // The real factory awaits setup before announcing the agent; the fake
       // mirrors that so channel consumers observe the same composed scope.
       await options.setup?.(agent.ctx)
@@ -205,6 +216,7 @@ export function installFakeAgentFactory(ctx: Context): {
     async resume(ownerCtx, options) {
       const session = ownerCtx.sessions.create(options.resumeSessionId)
       const agent = createFakeAgent(ownerCtx, session, options.agentOptions)
+      prepare?.(agent, session)
       await options.setup?.(agent.ctx)
       agents.push(agent)
       const handle: AgentHandle = {
@@ -258,6 +270,9 @@ export async function createTuiTestHarness<TerminalType extends Terminal, Exit e
   options.beforeMount?.(session)
   if (options.sessionReferenceResolver !== undefined) {
     ctx.provide('sessionReferenceResolver', options.sessionReferenceResolver)
+  }
+  if (options.agentPresets !== undefined) {
+    ctx.provide('agentPresets', options.agentPresets)
   }
   const agent = createFakeAgent(ctx, session, undefined, options.status)
   const selection: ModelSelectionRef = { current: initialTarget(agent), assembled: undefined }

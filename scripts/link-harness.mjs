@@ -66,8 +66,15 @@ function indexHarnessPackages(harnessRoot) {
 function collectNeededNames() {
   const own = new Set(['@deepseek-ai/dsh-tui', '@deepseek-ai/dsh-tui-app'])
   const needed = new Set()
-  for (const pkg of ['tui', 'tui-app']) {
-    const manifest = readJson(join(repoRoot, 'packages', pkg, 'package.json'))
+  // The root package is the git-installable bundle; its dev/peer seam (e.g.
+  // cordis-plugin-include for the root patch spec) needs linking too.
+  const manifests = [
+    join(repoRoot, 'package.json'),
+    join(repoRoot, 'packages', 'tui', 'package.json'),
+    join(repoRoot, 'packages', 'tui-app', 'package.json'),
+  ]
+  for (const path of manifests) {
+    const manifest = readJson(path)
     for (const depTable of [manifest.devDependencies, manifest.peerDependencies]) {
       for (const name of Object.keys(depTable ?? {})) {
         if (name.startsWith('@deepseek-ai/') && !own.has(name)) needed.add(name)

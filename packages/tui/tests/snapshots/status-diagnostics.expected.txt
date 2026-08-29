@@ -1,7 +1,7 @@
 terminal 96x36 buffer=normal length=36 base=0 viewport=0
 lifecycle started=1 stopped=0 progress=inactive
 title "DSH snapshot"
-cursor hidden column=7 viewportRow=25 bufferRow=25
+cursor hidden column=7 viewportRow=26 bufferRow=26
 buffer
 0| " DEEPSEEK HARNESS"
   style 1-8 fg=bright-magenta bold
@@ -37,52 +37,56 @@ buffer
   style 3-12 dim
   style 49-84 dim
   style 86-86 dim
-12| "│                                                                                     │"
-  style 0-0 dim
-  style 86-86 dim
-13| "│  Agent:      idle · 2 events · 0 turns · 0 steps · 0 tool calls                     │"
+12| "│  Preset:     none                                                                   │"
   style 0-0 dim
   style 3-12 dim
   style 86-86 dim
-14| "│                                                                                     │"
+13| "│                                                                                     │"
   style 0-0 dim
   style 86-86 dim
-15| "│  Tokens:     1,250 input + 340 output                                               │"
+14| "│  Agent:      idle · 2 events · 0 turns · 0 steps · 0 tool calls                     │"
   style 0-0 dim
   style 3-12 dim
   style 86-86 dim
-16| "│  KV cache:   [███████████░░░░░] 67% hit (3,000 read + 250 write)                    │"
+15| "│                                                                                     │"
+  style 0-0 dim
+  style 86-86 dim
+16| "│  Tokens:     1,250 input + 340 output                                               │"
+  style 0-0 dim
+  style 3-12 dim
+  style 86-86 dim
+17| "│  KV cache:   [███████████░░░░░] 67% hit (3,000 read + 250 write)                    │"
   style 0-0 dim
   style 3-12 dim
   style 15-15 dim
   style 16-26 fg=bright-magenta
   style 27-32 dim
   style 86-86 dim
-17| "│  Context:    [█████░░░░░░░░░░░] 33% used (42,000 / 128,000)                         │"
+18| "│  Context:    [█████░░░░░░░░░░░] 33% used (42,000 / 128,000)                         │"
   style 0-0 dim
   style 3-12 dim
   style 15-15 dim
   style 16-20 fg=bright-magenta
   style 21-32 dim
   style 86-86 dim
-18| "│                                                                                     │"
+19| "│                                                                                     │"
   style 0-0 dim
   style 86-86 dim
-19| "│  Created:    2026-07-21 06:32:06 UTC                                                │"
-  style 0-0 dim
-  style 3-12 dim
-  style 86-86 dim
-20| "│  Active:     2026-07-21 06:32:06 UTC                                                │"
+20| "│  Created:    2026-07-21 06:32:06 UTC                                                │"
   style 0-0 dim
   style 3-12 dim
   style 86-86 dim
-21| "╰─────────────────────────────────────────────────────────────────────────────────────╯"
+21| "│  Active:     2026-07-21 06:32:06 UTC                                                │"
+  style 0-0 dim
+  style 3-12 dim
+  style 86-86 dim
+22| "╰─────────────────────────────────────────────────────────────────────────────────────╯"
   style 0-86 dim
-22| <blank>
-23| "/workspace/project  idle                                                                        "
+23| <blank>
+24| "/workspace/project  idle                                                                        "
   style 0-23 dim
-24| "idle · ↑1.3k ↓340 · cache 67% · 33% context · model deepseek-v4-pro low · tools collapsed       "
+25| "idle · ↑1.3k ↓340 · cache 67% · 33% context · model deepseek-v4-pro low · tools collapsed       "
   style 0-88 dim
-25| " dsh >                                                                                          "
+26| " dsh >                                                                                          "
   style 7-7 inverse
-26-35| <blank>
+27-35| <blank>

@@ -276,6 +276,10 @@ export function createTuiChat(
   const assistantSteps = new Map<number, StreamingAssistantComponent[]>()
   const toolCards = new Map<string, ToolCardComponent>()
   const allToolCards = new Set<ToolCardComponent>()
+  // Approval audit tracking: `approval/asked` carries the tool `callId` it
+  // blocks, and the paired `approval/decided` settles it by request id. The
+  // matching pending card doubles its warning bar while its ask is open.
+  const approvalCallByDecision = new Map<string, string>()
   const contextCards = new Set<ContextCardComponent>()
 
   const now = (): number => runtime.now?.() ?? Date.now()
@@ -746,6 +750,31 @@ export function createTuiChat(
     if (event.type === 'approval/policy') {
       approvalPolicy = event.data.policy
       requestRender()
+    }
+    // The approval audit pair is the TUI's pending-approval signal for tool
+    // cards (log-only events, so the transcript itself renders neither): the
+    // ask arms the matching call's card, the decision disarms it.
+    if (event.type === 'approval/asked') {
+      const callId = event.data.callId
+      if (callId !== undefined) {
+        approvalCallByDecision.set(event.data.id, callId)
+        const card = toolCards.get(callId)
+        if (card !== undefined) {
+          card.setAwaitingApproval(true)
+          requestRender()
+        }
+      }
+    }
+    if (event.type === 'approval/decided') {
+      const callId = approvalCallByDecision.get(event.data.id)
+      if (callId !== undefined) {
+        approvalCallByDecision.delete(event.data.id)
+        const card = toolCards.get(callId)
+        if (card !== undefined) {
+          card.setAwaitingApproval(false)
+          requestRender()
+        }
+      }
     }
     // Replacement events mutate only the model surface, so the rendered
     // transcript keeps what it already showed; a landed summary checkpoint

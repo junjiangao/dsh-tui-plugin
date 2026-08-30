@@ -140,8 +140,50 @@ describe('ToolCardComponent', () => {
     ), 6, 1000, palette, mdTheme)
     component.updateResult({ ...resultEvent('result text', true), meta: { verbose: true } })
     const rows = component.render(60).join('\n')
-    expect(rows).toContain(`${palette.error('●')} ${palette.dim('Tool / tool')}`)
+    // The failed block colors its whole header error-red and paints the error
+    // bar column.
+    expect(rows).toContain(`${palette.error('●')} ${palette.error('tool / done')}`)
+    expect(rows).toContain(palette.errorBg(' '))
     expect(rows).toContain('result text')
+  })
+
+  it('doubles the warning bar while the call awaits approval', () => {
+    const component = new ToolCardComponent('bash', { value: {}, valid: true }, definition(
+      { card: 'terminal', title: 'rm -rf /', description: 'Danger' },
+    ), 6, 1000, palette, mdTheme)
+    component.setAwaitingApproval(true)
+    const rows = component.render(60).join('\n')
+    expect(rows).toContain(`${palette.warning('○')} ${palette.dim('bash / Danger')}`)
+    expect(rows).toContain(palette.warningBg('  '))
+    // Once the ask settles the rail returns to the invisible single panel bar.
+    component.setAwaitingApproval(false)
+    const settled = component.render(60).join('\n')
+    expect(settled).not.toContain(palette.warningBg('  '))
+    expect(settled).toContain(palette.panel(' '))
+  })
+
+  it('keeps the pending raw input inline when collapsed and multi-line when expanded', () => {
+    const component = new ToolCardComponent('tool', { value: { a: 1, b: 2 }, valid: true }, undefined, 20, 1000, palette, mdTheme)
+    const collapsed = component.render(60)
+    expect(collapsed.join('\n')).toContain('{ "a": 1, "b": 2 }')
+    component.setVisibility('expanded')
+    const expanded = component.render(60)
+    expect(expanded.length).toBeGreaterThan(collapsed.length)
+    expect(expanded.join('\n')).toContain('"a": 1,')
+    expect(expanded.join('\n')).not.toContain('{ "a": 1, "b": 2 }')
+  })
+
+  it('moves the presenter title into the header without repeating it in the body', () => {
+    const component = new ToolCardComponent('tool', { value: {}, valid: true }, definition(
+      { card: 'generic', title: 'Read file', rawInput: {} },
+      { card: 'read', path: 'a.txt', offset: 1, totalLines: 2, lines: [], content: [{ type: 'text', text: 'line one' }] },
+    ), 6, 1000, palette, mdTheme)
+    component.updateResult(resultEvent('line one'))
+    const rows = component.render(60).join('\n')
+    expect(rows).toContain(`${palette.success('●')} ${palette.dim('tool / Read file')}`)
+    // The title appears exactly once — as the header detail — never as a body row.
+    expect(rows.match(/Read file/g) ?? []).toHaveLength(1)
+    expect(rows).toContain('line one')
   })
 
   it('renders a read card from its structured content', () => {
@@ -199,7 +241,8 @@ describe('ToolCardComponent', () => {
     const rows = component.render(60).join('\n')
     // A terminal result view with no output/status renders just the header:
     // the presenter opted to show nothing, so the raw content is not echoed.
-    expect(rows).toContain(`${palette.success('●')} ${palette.dim('Tool / bash')}`)
+    // With no description the header is the bare tool name.
+    expect(rows).toContain(`${palette.success('●')} ${palette.dim('bash')}`)
     expect(rows).not.toContain('raw output')
     expect(rows).not.toContain('[exit')
     expect(rows).not.toContain('[signal')

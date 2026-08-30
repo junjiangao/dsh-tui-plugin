@@ -79,8 +79,9 @@ function diffContentLines(text: string): string[] {
  * whole-side rendering so a model-authored pending edit cannot stall the TUI.
  */
 function renderDiff(diff: FileDiff, maxDiffEditLength: number, palette: Palette): RenderedDiff {
-  // The card header is a fixed `Tool / <name>` frame that never names a file, so
-  // each hunk always carries its own path header (no redundancy to suppress).
+  // The block header names the tool and the presenter's call title, not each
+  // hunk's file (a card can span several), so each hunk always carries its own
+  // path header (no redundancy to suppress).
   const lines = [palette.bold(displayText(diff.path))]
   let added = 0
   let removed = 0
@@ -131,6 +132,8 @@ export type BlockBar = 'none' | 'panel' | 'accent' | 'success' | 'warning' | 'er
 interface MessageBlockOptions {
   /** Left gutter bar background; `'none'` renders no bar column. Default `'none'`. */
   bar?: BlockBar
+  /** Visible bar columns; opencode's awaiting-approval state doubles the warning bar. Default `1`. */
+  barWidth?: number
   /** Paint the body with the panel background. Default `true`. */
   panel?: boolean
   /** Horizontal padding columns on each side of the body. Default `2`. */
@@ -150,20 +153,22 @@ interface BlockLayout {
   readonly padX: number
 }
 
-/** Fill the block defaults. */
+/** Fill the block defaults; the bar width is clamped to at least one column. */
 function blockOptions(options: MessageBlockOptions): BlockOptions {
-  const { bar = 'none', panel = true, paddingX = 2, paddingY = 1 } = options
-  return { bar, panel, paddingX, paddingY }
+  const { bar = 'none', barWidth = 1, panel = true, paddingX = 2, paddingY = 1 } = options
+  return { bar, barWidth: Math.max(1, barWidth), panel, paddingX, paddingY }
 }
 
 /**
- * Place a block's body inside `width`. Every non-default form reserves a
- * 1-column left slot — the visible bar, or the invisible slot that keeps flat
- * bodies' content column aligned with barred blocks (opencode's 1 border +
- * 2 padding).
+ * Place a block's body inside `width`. Every non-default form reserves a left
+ * slot — the visible bar at its full width, or the invisible 1-column slot that
+ * keeps flat bodies' content column aligned with barred blocks (opencode's
+ * 1 border + 2 padding).
  */
 function blockLayout(width: number, options: BlockOptions): BlockLayout {
-  const slot = options.bar !== 'none' || !options.panel ? 1 : 0
+  const slot = !options.panel
+    ? 1
+    : options.bar !== 'none' ? options.barWidth : 0
   const padX = Math.min(options.paddingX, Math.max(0, Math.floor((width - slot - 1) / 2)))
   return { padX, innerWidth: Math.max(1, width - slot - padX * 2) }
 }
@@ -207,10 +212,11 @@ function paintBlock(
     return rows
   }
   const bar = options.bar === 'none' ? undefined : barBackground(palette, options.bar)
-  const panelWidth = Math.max(0, width - (bar === undefined ? 0 : 1))
+  const barColumns = bar === undefined ? 0 : options.barWidth
+  const panelWidth = Math.max(0, width - barColumns)
   const paint = (content: string): string => {
     const panel = palette.panel(content + ' '.repeat(Math.max(0, panelWidth - visibleWidth(content))))
-    const row = bar === undefined ? panel : `${bar(' ')}${panel}`
+    const row = bar === undefined ? panel : `${bar(' '.repeat(barColumns))}${panel}`
     // A bar column leaves no room for a 1-column body at degenerate widths;
     // clamp the composed row back to `width` (a no-op once it fits).
     return bar === undefined ? row : truncateToWidth(row, width, '')
@@ -600,10 +606,17 @@ abstract class CachedCardComponent implements Component {
   protected abstract renderLines(width: number): string[]
 }
 
-/** A tool call and its result, rendered as a collapsible status card. */
+/**
+ * A tool call and its result, rendered as a collapsible opencode-style tool
+ * block: the panel floor behind the body, a left gutter bar that reads as the
+ * state (invisible while ok, error-red once the result failed, a doubled
+ * warning rail while the call awaits an approval decision), and a header row
+ * naming the tool plus the presenter's detail.
+ */
 export class ToolCardComponent extends CachedCardComponent {
   private result: { content: ContentBlock[]; isError: boolean; meta?: JsonValue } | undefined
   private visibility: ToolCardVisibility = 'collapsed'
+  private awaitingApproval = false
   private callView: ToolCallView
   private resultView: ToolResultView | undefined
   private diffBodyCache: { view: ToolCallView | ToolResultView; body: CardBody } | undefined
@@ -634,11 +647,13 @@ export class ToolCardComponent extends CachedCardComponent {
   }
 
   /**
-   * Record the tool result and derive its result view.
+   * Record the tool result and derive its result view. A settled call is no
+   * longer being decided, so the awaiting-approval rail drops with it.
    * @param event - The `tool/result` event payload.
    */
   updateResult(event: Extract<SessionEvent, { type: 'tool/result' }>['data']): void {
     this.diffBodyCache = undefined
+    this.awaitingApproval = false
     this.dropLines()
     const result = event.message.content[0]
     this.result = {
@@ -665,6 +680,16 @@ export class ToolCardComponent extends CachedCardComponent {
     this.dropLines()
   }
 
+  /**
+   * Mark whether this call is currently waiting on an approval decision.
+   * @param awaiting - Whether the approval ask covering this call is open.
+   */
+  setAwaitingApproval(awaiting: boolean): void {
+    if (this.awaitingApproval === awaiting) return
+    this.awaitingApproval = awaiting
+    this.dropLines()
+  }
+
   protected renderLines(width: number): string[] {
     // Hidden renders nothing — not even the leading gap — so the transcript
     // keeps only the conversation, the way Codex hides tool calls.
@@ -673,6 +698,13 @@ export class ToolCardComponent extends CachedCardComponent {
     // A ring marker: hollow while the call is pending, filled once it settles;
     // the header color (warning/success/error) tells pending from ok from error.
     const glyph = this.result === undefined ? '○' : '●'
+    // The opencode tool block: a panel floor behind the body; the left bar is
+    // the invisible panel rail, turns error-red once the result failed, and
+    // doubles in warning-orange while the call awaits an approval decision.
+    const options = blockOptions(this.awaitingApproval && this.result === undefined
+      ? { bar: 'warning', barWidth: 2 }
+      : { bar: isError ? 'error' : 'panel' })
+    const layout = blockLayout(width, options)
     const rawBody = this.renderBody()
     const view = this.resultView ?? this.callView
     const markdownContent = view.card === 'generic'
@@ -696,32 +728,34 @@ export class ToolCardComponent extends CachedCardComponent {
     // document's own block spacing is preserved, then dims every row — the whole
     // card body reads as one dim block under the status-colored header.
     const body = unknownXml ?? (markdownContent !== undefined && rawBody.lines.length > 0
-      ? this.dimBody(rawBody, width)
+      ? this.dimBody(rawBody, layout.innerWidth)
       : [...rawBody.prelude, ...rawBody.lines])
     const visibleBody = unknownXml !== undefined || this.visibility === 'expanded'
       ? body
       : preview(body, this.maxOutputLines, count => this.palette.dim(`… +${count} lines (Ctrl+O to expand)`))
-    // The header is a fixed `Tool / <name>` frame. Only the leading status
-    // glyph carries the pending/ok/error color; the rest stays dim so the tool
-    // block reads as a supporting block rather than competing with the body.
+    // The header row opens the block: the status glyph, then the tool name and
+    // the optional presenter detail. Only the glyph carries the
+    // pending/ok/error color; the rest stays dim so the tool block reads as a
+    // supporting block rather than competing with the body. An error result
+    // colors the whole header error-red.
     const statusColor = this.result === undefined
       ? this.palette.warning
       : isError ? this.palette.error : this.palette.success
-    // The header is a single card row: collapse an embedded newline in the
-    // description to an inline escape so it cannot break onto extra rows and
-    // collide with the body lines that follow.
-    const desc = this.headerDescription()
-    const headerText = `${glyph} Tool / ${displayText(this.name)}${desc === undefined ? '' : ` / ${displayInlineText(desc)}`}`
+    const detail = this.headerDetail()
+    const headerRest = `${displayText(this.name)}${detail === undefined ? '' : ` / ${displayInlineText(detail)}`}`
     const header = truncateToWidth(
-      `${statusColor(glyph)} ${this.palette.dim(headerText.slice(glyph.length + 1))}`,
-      Math.max(1, width - 2),
+      `${statusColor(glyph)} ${isError ? this.palette.error(headerRest) : this.palette.dim(headerRest)}`,
+      layout.innerWidth,
       '',
     )
+    // The body renders at the block's inner width; paintBlock owns the bar
+    // column, the panel floor, and the padding.
+    const bodyRows = visibleBody.length > 0
+      ? new Text(visibleBody.join('\n'), 0, 0).render(layout.innerWidth)
+      : []
     // The blank first row is the card's own paragraph gap (no external Spacer),
     // so the hidden state removes the gap together with the card.
-    const lines: string[] = ['', header]
-    if (visibleBody.length > 0) lines.push(...new Text(visibleBody.join('\n'), 0, 0).render(width))
-    return lines
+    return ['', ...paintBlock(this.palette, [header, ...bodyRows], width, layout, options)]
   }
 
   /** The pending terminal call view, when this row is a terminal card. */
@@ -730,18 +764,25 @@ export class ToolCardComponent extends CachedCardComponent {
   }
 
   /**
-   * The optional header `/ <desc>` segment: a bash (terminal) card's
-   * model-authored description. Non-terminal tools contribute no header detail.
+   * The optional header `/ <detail>` segment. A terminal card contributes its
+   * model-authored command description (the `$` command stays in the body);
+   * every other card contributes the presenter's title — the result-state
+   * title replaces the pending one — unless it only repeats the tool name the
+   * header already shows. No detail leaves just the tool name.
    */
-  private headerDescription(): string | undefined {
-    const description = this.terminalPending()?.description
-    return description !== undefined && description !== '' ? description : undefined
+  private headerDetail(): string | undefined {
+    const pending = this.terminalPending()
+    if (pending !== undefined) {
+      const description = pending.description
+      return description !== undefined && description !== '' ? description : undefined
+    }
+    const title = this.bodyTitle()
+    return title !== '' && title !== displayText(this.name) ? title : undefined
   }
 
   /**
-   * The presenter's title for a non-terminal card, shown as the first body line
-   * now that the header is a fixed `Tool / <name>` frame. The result-state
-   * title replaces the pending one.
+   * The presenter's title for a non-terminal card, shown as the header detail.
+   * The result-state title replaces the pending one.
    */
   private bodyTitle(): string {
     return this.resultView?.title ?? this.callView.title
@@ -770,7 +811,8 @@ export class ToolCardComponent extends CachedCardComponent {
     }
     if (view.card === 'diff') {
       if (this.diffBodyCache?.view === view) return this.diffBodyCache.body
-      // The header no longer names the file, so each diff keeps its own path
+      // The header names the tool and the presenter's call title, not each
+      // hunk's file (a card can span several), so every diff keeps its own path
       // header. A trailing footer summarizes the exact changed rows when the
       // bounded comparison succeeds (`+A -R · N file(s)`).
       const renderedDiffs = view.diffs.map(diff =>
@@ -798,18 +840,21 @@ export class ToolCardComponent extends CachedCardComponent {
     const content = (view.card === 'generic' || view.card === 'read' ? view.content : undefined) ?? this.result?.content
     const prelude: string[] = []
     const lines: string[] = []
-    // The presenter title headlines the body now that the header is a fixed
-    // `Tool / <name>` frame. Skip it when it only repeats the tool name, which
-    // the header already shows.
-    const bodyTitle = this.bodyTitle()
-    if (bodyTitle !== displayText(this.name)) prelude.push(displayInlineText(bodyTitle))
     if (content !== undefined) lines.push(...displayText(contentText(content)).split('\n'))
     const rawInput = this.result === undefined && this.callView.card === 'generic'
       ? this.callView.rawInput
       : undefined
-    if (rawInput !== undefined) lines.push(...pretty(rawInput).split('\n'))
-    // Blank-line trimming spans the whole body, so the title counts as a row:
-    // interior blanks survive while the body's leading and trailing ones drop.
+    if (rawInput !== undefined) {
+      // The pending card's raw input collapses to one inline row so a wide
+      // JSON payload reads as a truncated summary; the expanded state keeps
+      // the full pretty-printed multi-line view.
+      const rendered = pretty(rawInput)
+      lines.push(...(this.visibility === 'expanded'
+        ? rendered.split('\n')
+        : [rendered.replace(/\s*\n\s*/gu, ' ')]))
+    }
+    // Blank-line trimming spans the whole body: interior blanks survive while
+    // the body's leading and trailing ones drop.
     const total = prelude.length + lines.length
     return {
       prelude,
@@ -831,9 +876,9 @@ export class ToolCardComponent extends CachedCardComponent {
 
   /**
    * Render a generic card's prelude and result as one Markdown document under the
-   * dim body tone. Rendering both together preserves the document's own block
-   * spacing; dimming every row keeps the card body one uniform tone, so only
-   * the status-colored header carries color.
+   * dim body tone, wrapped to the block's inner width. Rendering both together
+   * preserves the document's own block spacing; dimming every row keeps the
+   * card body one uniform tone, so only the status-colored header carries color.
    */
   private dimBody(body: CardBody, width: number): string[] {
     const rows = new Markdown([...body.prelude, ...body.lines].join('\n'), 0, 0, this.mdTheme, {

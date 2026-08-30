@@ -6,6 +6,7 @@
 
 import { describe, expect, it } from 'vitest'
 import ApprovalService from '@deepseek-ai/dsh-user-approval'
+import { CallId } from '@deepseek-ai/dsh-llm'
 import { createFakeAgent, createTuiTestHarness, disposeTuiTestHarness } from './harness.ts'
 import { HeadlessTerminal } from './headless-terminal.ts'
 import { SessionId } from '@deepseek-ai/dsh-session'
@@ -182,6 +183,35 @@ describe('approval in the live channel', () => {
     expect(outcome).toBe('unavailable')
     const snapshot = await terminal.snapshot({ includeScrollback: true })
     expect(snapshot).not.toContain('Approve bash?')
+    await disposeTuiTestHarness(harness)
+    await terminal.dispose()
+  })
+
+  it('doubles the matching tool card\'s warning bar while the ask is open', async () => {
+    const { harness, terminal } = await setup()
+    openTurn(harness)
+    // A pending tool call the ask can attach to (its card renders with the
+    // invisible single panel bar: three leading columns before the glyph).
+    harness.session.append('tool/call', { turn: 1, step: 1, callId: CallId('call-1'), name: 'bash', arguments: '{}' })
+    await terminal.waitForFrame()
+    expect(await terminal.snapshot({ includeScrollback: true })).toContain('"   ○ bash')
+    const request = harness.ctx.approval.request({
+      agent: harness.agent,
+      toolName: 'bash',
+      callId: CallId('call-1'),
+      reason: 'Run ls -la in /workspace',
+    })
+    await terminal.waitForFrame()
+    const asking = await terminal.snapshot({ includeScrollback: true })
+    expect(asking).toContain('Approve bash?')
+    // The open ask doubles the warning rail: the card's content column shifts
+    // one column right behind the modal.
+    expect(asking).toContain('"    ○ bash')
+    terminal.send('\r')
+    await expect(request).resolves.toBe('allowed-once')
+    await terminal.waitForFrame()
+    // The decision disarms the doubled rail; the card is still pending.
+    expect(await terminal.snapshot({ includeScrollback: true })).toContain('"   ○ bash')
     await disposeTuiTestHarness(harness)
     await terminal.dispose()
   })

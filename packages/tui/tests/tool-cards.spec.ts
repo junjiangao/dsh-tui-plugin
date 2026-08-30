@@ -83,8 +83,9 @@ describe('tool cards in the live channel', () => {
     appendToolCall(harness, 'mytool', '{"verbose":true}')
     await terminal.waitForFrame()
     let snapshot = await terminal.snapshot({ includeScrollback: true })
-    expect(snapshot).toContain('○ Tool / mytool')
-    expect(snapshot).toContain('Run mytool')
+    // The header names the tool plus the presenter title; the pending body is
+    // the collapsed single-line raw input.
+    expect(snapshot).toContain('○ mytool / Run mytool')
     // The snapshot serializes rows with JSON.stringify, so inner quotes are escaped.
     expect(snapshot).toContain('\\"verbose\\": true')
     appendToolResult(harness, 'result text')
@@ -92,8 +93,7 @@ describe('tool cards in the live channel', () => {
     appendStepEnd(harness.session)
     await terminal.waitForFrame()
     snapshot = await terminal.snapshot({ includeScrollback: true })
-    expect(snapshot).toContain('● Tool / mytool')
-    expect(snapshot).toContain('mytool done')
+    expect(snapshot).toContain('● mytool / mytool done')
     expect(snapshot).toContain('result text')
     await disposeTuiTestHarness(harness)
     await terminal.dispose()
@@ -116,7 +116,7 @@ describe('tool cards in the live channel', () => {
     appendStepEnd(harness.session)
     await terminal.waitForFrame()
     snapshot = await terminal.snapshot({ includeScrollback: true })
-    expect(snapshot).toContain('● Tool / bash')
+    expect(snapshot).toContain('● bash')
     expect(snapshot).toContain('total 4')
     expect(snapshot).toContain('[exit 0]')
     await disposeTuiTestHarness(harness)
@@ -132,7 +132,7 @@ describe('tool cards in the live channel', () => {
     appendToolCall(harness, 'edit', '{}')
     await terminal.waitForFrame()
     const snapshot = await terminal.snapshot({ includeScrollback: true })
-    expect(snapshot).toContain('○ Tool / edit')
+    expect(snapshot).toContain('○ edit / Edit a.txt')
     expect(snapshot).toContain('a.txt')
     expect(snapshot).toContain('+ three')
     expect(snapshot).toContain('- two')
@@ -183,7 +183,7 @@ describe('tool cards in the live channel', () => {
     terminal.send('\x0f')
     await terminal.waitForFrame()
     snapshot = await terminal.snapshot({ includeScrollback: true })
-    expect(snapshot).not.toContain('Tool / bash')
+    expect(snapshot).not.toContain('bash / Run bash')
     expect(snapshot).not.toContain('Run bash')
     expect(snapshot.match(/Assistant/g) ?? []).toHaveLength(1)
     expect(snapshot).toContain('second step body')
@@ -191,7 +191,7 @@ describe('tool cards in the live channel', () => {
     terminal.send('\x0f')
     await terminal.waitForFrame()
     snapshot = await terminal.snapshot({ includeScrollback: true })
-    expect(snapshot).toContain('Tool / bash')
+    expect(snapshot).toContain('bash / Run bash')
     // Ctrl+R hides reasoning blocks.
     terminal.send('\x12')
     await terminal.waitForFrame()
@@ -295,8 +295,9 @@ describe('tool cards in the live channel', () => {
     await terminal.waitForFrame()
     const snapshot = await terminal.snapshot({ includeScrollback: true })
     // A result without its call has no tool name, so the card falls back to
-    // the neutral `tool` frame.
-    expect(snapshot).toContain('● Tool / tool')
+    // the neutral `tool` name; the pending title repeats it, so the header
+    // shows the bare name without a detail segment.
+    expect(snapshot).toContain('● tool')
     expect(snapshot).toContain('orphan result')
     await disposeTuiTestHarness(harness)
     await terminal.dispose()

@@ -264,7 +264,7 @@ export function createTuiChat(
   let ctrlCExitHintTimer: ReturnType<typeof setTimeout> | undefined
   let reasoningMode: ReasoningVisibility = resolved.showReasoning ? 'collapsed' : 'hidden'
   let approvalPolicy: ApprovalPolicy = effectiveApprovalPolicy(agent.session.events)
-    ?? (ctx as { approval?: { config?: { policy?: ApprovalPolicy } } }).approval?.config?.policy
+    ?? (ctx.get('approval') as { config?: { policy?: ApprovalPolicy } } | undefined)?.config?.policy
     ?? 'ask'
   let toolsVisibility: ToolCardVisibility = 'collapsed'
   let streaming: StreamingAssistantComponent | undefined
@@ -359,12 +359,13 @@ export function createTuiChat(
   const currentApprovalPolicy = (): ApprovalPolicy => approvalPolicy
 
   const currentPermissionLabel = (): string => {
-    const service = (ctx as {
-      permissionPresets?: {
-        current(events: readonly SessionEvent[]): string
-        optionOf(name: string): { name: string }
-      }
-    }).permissionPresets
+    // Host services resolve through `ctx.get`, the untracked accessor: reading
+    // a declared service as a context property requires an inject scope, and
+    // render paths run outside one.
+    const service = ctx.get('permissionPresets') as {
+      current(events: readonly SessionEvent[]): string
+      optionOf(name: string): { name: string }
+    } | undefined
     if (service !== undefined) {
       const current = service.current(agent.session.events)
       if (current === 'custom') return 'Custom'

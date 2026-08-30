@@ -87,10 +87,13 @@ export function createPermissionController(deps: PermissionControllerDeps): Perm
   let permissionOverlay: TuiOverlaySession | undefined
   let permissionCommands = Promise.resolve()
 
+  // Host services resolve through `ctx.get`, the untracked accessor: reading a
+  // declared service as a context property requires an inject scope, and this
+  // controller — like every render path — runs outside one.
   const presets = (): PermissionPresetServiceLike | undefined =>
-    (ctx as { permissionPresets?: PermissionPresetServiceLike }).permissionPresets
+    ctx.get('permissionPresets') as PermissionPresetServiceLike | undefined
   const approval = (): ApprovalServiceLike | undefined =>
-    (ctx as { approval?: ApprovalServiceLike }).approval
+    ctx.get('approval') as ApprovalServiceLike | undefined
 
   const closeSelector = (): void => {
     void permissionOverlay?.close()
@@ -104,9 +107,9 @@ export function createPermissionController(deps: PermissionControllerDeps): Perm
         return (event as { data: { mode: SandboxMode } }).data.mode
       }
     }
-    const shell = (ctx as { shell?: { sandboxMode?: SandboxMode } }).shell
+    const shell = ctx.get('shell') as { sandboxMode?: SandboxMode } | undefined
     return shell?.sandboxMode
-      ?? (ctx as { sandboxPolicy?: { defaultMode?: SandboxMode } }).sandboxPolicy?.defaultMode
+      ?? (ctx.get('sandboxPolicy') as { defaultMode?: SandboxMode } | undefined)?.defaultMode
       ?? 'read-only'
   }
 

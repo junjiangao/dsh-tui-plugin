@@ -700,21 +700,27 @@ export type ToolCardVisibility = 'hidden' | 'collapsed' | 'expanded'
  * cache only serves rows rendered in the same animation frame.
  */
 abstract class CachedCardComponent implements Component {
-  private cached: { width: number; epoch: unknown; lines: string[] } | undefined
+  /**
+   * Rendered rows per width. Two slots cover a card alternating between two
+   * widths (the perf baseline's per-card pattern, and a resize flap); more
+   * distinct widths evict the oldest slot rather than growing unbounded.
+   */
+  private readonly cached = new Map<number, { epoch: unknown; lines: string[] }>()
+  private static readonly CACHE_SLOTS = 2
 
   /** Discard the cached rows so the next render recomputes them. */
   protected dropLines(): void {
-    this.cached = undefined
+    this.cached.clear()
   }
 
   invalidate(): void {
-    this.cached = undefined
+    this.cached.clear()
   }
 
   /**
    * The cache generation the current rows belong to. Rows rendered for one
    * epoch are never served for another; the default `undefined` epoch is
-   * permanent, so time-independent cards keep a single width-keyed cache.
+   * permanent, so time-independent cards keep a width-keyed cache.
    * @returns The current cache epoch, or `undefined` for a permanent cache.
    */
   protected cacheEpoch(): unknown {
@@ -723,10 +729,17 @@ abstract class CachedCardComponent implements Component {
 
   render(width: number): string[] {
     const epoch = this.cacheEpoch()
-    if (this.cached?.width !== width || this.cached.epoch !== epoch) {
-      this.cached = { width, epoch, lines: this.renderLines(width) }
+    const cached = this.cached.get(width)
+    if (cached !== undefined && cached.epoch === epoch) return cached.lines
+    const lines = this.renderLines(width)
+    this.cached.delete(width)
+    this.cached.set(width, { epoch, lines })
+    while (this.cached.size > CachedCardComponent.CACHE_SLOTS) {
+      const oldest = this.cached.keys().next()
+      if (oldest.done === true) break
+      this.cached.delete(oldest.value)
     }
-    return this.cached.lines
+    return lines
   }
 
   /**

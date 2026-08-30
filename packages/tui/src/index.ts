@@ -1294,6 +1294,11 @@ function parseModelRoute(value: string | undefined): { provider: string; model: 
 
 async function run(ctx: Context, config: Config, runtime: TuiRuntime): Promise<void> {
   const startup = ctx.get(TUI_STARTUP_SERVICE)
+  // Loader siblings mount concurrently. Await the complete application before
+  // resolving the deployment default model or creating an Agent, so a saved
+  // /model selection (and the rest of the composed tool plane) is visible
+  // instead of booting on the raw composition default.
+  await ctx.get('loader')?.await()
   const route = parseModelRoute(config.model)
   // An explicit --model route wins; without one the agent boots on the
   // deployment's default model (the same service web entry points consume).

@@ -129,6 +129,40 @@ describe('mountTui', () => {
     await terminal.dispose()
   })
 
+  it('waits for the loader before reading the saved default model', async () => {
+    const ctx = new Context()
+    await ctx.plugin(SessionStore)
+    await ctx.plugin(AgentRegistry)
+    await mountChannelServices(ctx)
+    let selection: { provider: string; model: string; reasoningEffort?: string } = { provider: 'deepseek-official', model: 'deepseek-v4-flash' }
+    ctx.provide('agentDefaultModel', {
+      currentSelection: () => selection,
+      saveSelection: async () => {},
+    })
+    let releaseLoader: (() => void) | undefined
+    const loaderGate = new Promise<void>((resolve) => { releaseLoader = resolve })
+    ctx.provide('loader', { await: () => loaderGate })
+    const installed = installFakeAgentFactory(ctx)
+    const terminal = new HeadlessTerminal(80, 24)
+    const exits: number[] = []
+    mountTui(ctx, { sessionId: 'fresh-loader' }, {
+      terminal,
+      exit: code => void exits.push(code),
+    })
+    // The TUI must not create the agent until the loader (and therefore the
+    // settings-backed default model) has settled.
+    await Promise.resolve()
+    expect(installed.agents).toHaveLength(0)
+    selection = { provider: 'settings-provider', model: 'settings-model', reasoningEffort: 'low' }
+    releaseLoader?.()
+    await terminal.waitForFrame()
+    expect(installed.agents).toHaveLength(1)
+    expect(installed.agents[0]?.options).toEqual({ provider: 'settings-provider', model: 'settings-model' })
+    expect(exits).toEqual([])
+    await ctx.fiber.dispose()
+    await terminal.dispose()
+  })
+
   it('keeps the session default route when the model flag is malformed or absent', async () => {
     const ctx = new Context()
     await ctx.plugin(SessionStore)

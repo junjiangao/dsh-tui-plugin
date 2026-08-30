@@ -1,7 +1,7 @@
 terminal 96x36 buffer=normal length=36 base=0 viewport=0
 lifecycle started=1 stopped=0 progress=inactive
 title "DSH snapshot"
-cursor hidden column=8 viewportRow=7 bufferRow=7
+cursor hidden column=7 viewportRow=9 bufferRow=9
 viewport
 0| " DEEPSEEK HARNESS"
   style 1-8 fg=bright-magenta bold
@@ -17,10 +17,16 @@ viewport
   style 0-55 dim
 6| "╭─ dsh ────────────────────────────────────────────────────────────── model deepseek-v4-flash ─╮"
   style 0-95 fg=bright-magenta
-7| "│ dsh >                                                                                        │"
+7| "│ dsh > The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy   │"
   style 0-0 fg=bright-magenta
-  style 8-8 inverse
   style 95-95 fg=bright-magenta
-8| "╰──────────────────────────────────────────────────────────────────────────────────────────────╯"
+8| "│ dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy    │"
+  style 0-0 fg=bright-magenta
+  style 95-95 fg=bright-magenta
+9| "│ dog.                                                                                         │"
+  style 0-0 fg=bright-magenta
+  style 7-7 inverse
+  style 95-95 fg=bright-magenta
+10| "╰──────────────────────────────────────────────────────────────────────────────────────────────╯"
   style 0-95 fg=bright-magenta
-9-35| <blank>
+11-35| <blank>

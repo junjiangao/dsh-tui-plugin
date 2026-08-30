@@ -15,9 +15,15 @@ buffer
   style 0-23 dim
 5| "idle · ↑0 ↓0 · model deepseek-v4-flash · tools collapsed                                        "
   style 0-55 dim
-6| " dsh >                                                                                          "
-  style 7-7 inverse
-7-13| <blank>
+6| "╭─ dsh ────────────────────────────────────────────────────────────── model deepseek-v4-flash ─╮"
+  style 0-95 dim
+7| "│ dsh >                                                                                        │"
+  style 0-0 dim
+  style 8-8 inverse
+  style 95-95 dim
+8| "╰──────────────────────────────────────────────────────────────────────────────────────────────╯"
+  style 0-95 dim
+9-13| <blank>
 14| "          ╭ Select model ────────────────────────────────────────────────────────────╮          "
   style 10-85 fg=bright-magenta
 15| "          │ >                                                                        │          "

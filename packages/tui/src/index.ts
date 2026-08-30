@@ -49,6 +49,7 @@ import { SessionId, isReplacementSurfaceEvent, type SessionEvent } from '@deepse
 import { foldSessionTitle } from '@deepseek-ai/dsh-session-title'
 import { parseSessionReferenceText } from '@deepseek-ai/dsh-session-reference'
 import { Config, resolveTuiConfig } from './config.ts'
+import { BorderedEditor } from './components/bordered-editor.ts'
 import { contentText, parseArguments } from './components/content.ts'
 import { displayInlineText, displayText } from './components/text.ts'
 import { createPalette, markdownTheme, selectTheme } from './components/theme.ts'
@@ -201,6 +202,11 @@ export function createTuiChat(
       continuation: ' '.repeat(visibleWidth(displayInlineText('dsh > '))),
     },
   })
+  // The editor stays the focus target; this wrapper only draws the rounded
+  // border around it and follows the editor's own focus state.
+  const inputBox = new BorderedEditor(editor, palette, {
+    leftLabel: displayInlineText(' dsh '),
+  })
   const promptLine = new Text('', 0, 0)
   // Status footer: phase glyph, elapsed, queued steering, token buckets, KV
   // cache rate, context occupancy, model route, and tool-card mode, truncated
@@ -291,7 +297,7 @@ export function createTuiChat(
   ui.addChild(promptLine)
   ui.addChild(statusLine)
   ui.addChild(questionContainer)
-  ui.addChild(editor)
+  ui.addChild(inputBox)
   ui.setFocus(editor)
 
   const updatePromptLine = (): void => {
@@ -335,6 +341,14 @@ export function createTuiChat(
     )))
   }
 
+  const updateInputBox = (): void => {
+    inputBox.setRightLabel(
+      selection.current === undefined
+        ? undefined
+        : displayText(`model ${compactTargetLabel(selection.current)}`),
+    )
+  }
+
   const updateTerminalTitle = (): void => {
     runtime.terminal.setTitle(displayText(
       sessionTitle === undefined ? resolved.title : `${sessionTitle} — ${resolved.title}`,
@@ -346,6 +360,7 @@ export function createTuiChat(
     if (disposed) return
     updatePromptLine()
     updateStatusLine()
+    updateInputBox()
     ui.invalidate()
     ui.requestRender()
   }

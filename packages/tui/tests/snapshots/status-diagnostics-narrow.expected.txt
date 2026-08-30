@@ -1,7 +1,7 @@
 terminal 56x36 buffer=normal length=36 base=0 viewport=0
 lifecycle started=1 stopped=0 progress=inactive
 title "DSH snapshot"
-cursor hidden column=7 viewportRow=31 bufferRow=31
+cursor hidden column=8 viewportRow=32 bufferRow=32
 buffer
 0| " DEEPSEEK HARNESS"
   style 1-8 fg=bright-magenta bold
@@ -101,6 +101,12 @@ buffer
   style 0-55 dim
 30| "deepseek-v4-pro low · tools collapsed                   "
   style 0-36 dim
-31| " dsh >                                                  "
-  style 7-7 inverse
-32-35| <blank>
+31| "╭─ dsh ──────────────────── model deepseek-v4-pro low ─╮"
+  style 0-55 fg=bright-magenta
+32| "│ dsh >                                                │"
+  style 0-0 fg=bright-magenta
+  style 8-8 inverse
+  style 55-55 fg=bright-magenta
+33| "╰──────────────────────────────────────────────────────╯"
+  style 0-55 fg=bright-magenta
+34-35| <blank>

@@ -27,6 +27,7 @@ const REFRESHING = process.env.DSH_SNAPSHOT === 'refresh'
 
 const CHECKPOINTS = [
   'minimal-chat',
+  'input-wrapped',
   'streaming',
   'disposed-terminal',
   'goal-commands',
@@ -96,6 +97,16 @@ describe('TUI semantic snapshots', () => {
   it('minimal-chat', async () => {
     const harness = await setupSnapshot()
     await checkpoint('minimal-chat', harness.terminal)
+    await disposeSnapshot(harness)
+  })
+
+  it('input-wrapped', async () => {
+    const harness = await setupSnapshot()
+    const longInput = 'The quick brown fox jumps over the lazy dog. '.repeat(4)
+    await renderAfter(harness, () => {
+      harness.terminal.send(longInput)
+    })
+    await checkpoint('input-wrapped', harness.terminal)
     await disposeSnapshot(harness)
   })
 

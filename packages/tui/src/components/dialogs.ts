@@ -574,7 +574,7 @@ export class ResumePicker implements Component, Focusable {
    */
   setCandidates(candidates: readonly ResumeCandidate[]): void {
     this.candidates = candidates
-    this.selectedIndex = 0
+    this.selectedIndex = this.defaultSelectedIndex()
     // A still-loading error is false the moment rows exist.
     this.error = ''
     this.invalidate()
@@ -586,6 +586,14 @@ export class ResumePicker implements Component, Focusable {
     return this.scope === 'all'
       ? [...candidates]
       : candidates.filter(candidate => candidate.currentWorkspace)
+  }
+
+  /**
+   * The picker's default target: the newest row of the active scope. Rows run
+   * oldest-first, so the newest conversation is the last one.
+   */
+  private defaultSelectedIndex(): number {
+    return Math.max(0, this.scoped().length - 1)
   }
 
   private filtered(): ResumeCandidate[] {
@@ -640,7 +648,7 @@ export class ResumePicker implements Component, Focusable {
       if (this.search.getValue() === '') this.cancel()
       else {
         this.search.setValue('')
-        this.selectedIndex = 0
+        this.selectedIndex = this.defaultSelectedIndex()
         this.error = ''
       }
     } else if (matchesKey(data, Key.up)) {
@@ -659,7 +667,7 @@ export class ResumePicker implements Component, Focusable {
     } else if (matchesKey(data, Key.tab)) {
       this.scope = this.scope === 'workspace' ? 'all' : 'workspace'
       this.search.setValue('')
-      this.selectedIndex = 0
+      this.selectedIndex = this.defaultSelectedIndex()
       this.error = ''
     } else if (matchesKey(data, Key.enter)) {
       const selected = filtered[this.selectedIndex]

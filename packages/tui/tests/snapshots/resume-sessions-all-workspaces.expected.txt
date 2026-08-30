@@ -4,7 +4,7 @@ title "DSH snapshot"
 cursor hidden column=6 viewportRow=4 bufferRow=4
 buffer
 0| "                                                                                                "
-1| "  Resume session (1 of 2)                                                                       "
+1| "  Resume session (2 of 2)                                                                       "
   style 2-24 fg=bright-magenta bold
 2| "                                                                                                "
 3| "  ╭──────────────────────────────────────────────────────────────────────────────────────────╮  "
@@ -20,17 +20,17 @@ buffer
   style 2-19 fg=bright-magenta
   style 20-41 dim
 8| "                                                                                                "
-9| "  ❯ Session s-2 title                                                                           "
-  style 2-20 fg=bright-magenta bold
-10| "    2023-11-14T22:13:20.001Z · persisted · s-2                                                  "
+9| "    Session s-1 title                                                                           "
+10| "    2023-11-14T22:13:20.000Z · persisted · s-1                                                  "
   style 2-45 dim
-11| "    workspace /workspace/other                                                                  "
-  style 2-29 dim
-12| "    Session s-1 title                                                                           "
-13| "    2023-11-14T22:13:20.000Z · persisted · s-1                                                  "
-  style 2-45 dim
-14| "    workspace /workspace/project                                                                "
+11| "    workspace /workspace/project                                                                "
   style 2-31 dim
+12| "  ❯ Session s-2 title                                                                           "
+  style 2-20 fg=bright-magenta bold
+13| "    2023-11-14T22:13:20.001Z · persisted · s-2                                                  "
+  style 2-45 dim
+14| "    workspace /workspace/other                                                                  "
+  style 2-29 dim
 15| "                                                                                                "
 16| "                                                                                                "
 17| "                                                                                                "

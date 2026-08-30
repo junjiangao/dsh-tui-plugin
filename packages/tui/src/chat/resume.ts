@@ -364,7 +364,10 @@ export function createResumeController(deps: ResumeControllerDeps): ResumeContro
             ? unreadableCandidate(record, activity[index], resolution.failure)
             : summarize(record, resolution.title, activity[index])
         })
-        candidates.sort((a, b) => b.lastActivityAt - a.lastActivityAt
+        // Conversations read top to bottom, oldest first: a fresh session
+        // lands at the bottom of the list instead of jumping to the top.
+        // Equal activity ties break on the session id.
+        candidates.sort((a, b) => a.lastActivityAt - b.lastActivityAt
           || a.record.header.id.localeCompare(b.record.header.id))
         // The cancelled-scan path is pinned by the in-flight cancel test,
         // which asserts the aborted signal and the silent settle.

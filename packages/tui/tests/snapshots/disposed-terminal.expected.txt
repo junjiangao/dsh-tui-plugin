@@ -1,7 +1,7 @@
 terminal 96x36 buffer=normal length=36 base=0 viewport=0
 lifecycle started=1 stopped=1 progress=inactive
 title "DSH snapshot"
-cursor visible column=0 viewportRow=22 bufferRow=22
+cursor visible column=0 viewportRow=20 bufferRow=20
 buffer
 0| " DEEPSEEK HARNESS"
   style 1-8 fg=bright-magenta bold
@@ -14,35 +14,32 @@ buffer
 4| "You                                                                                             "
   style 0-2 fg=bright-magenta bold underline
 5| "                                                                                                "
-  style 0-95 bg=bright-black
-6| "  One turn.                                                                                     "
-  style 0-95 bg=bright-black
+  style 0-0 bg=bright-magenta
+  style 1-95 bg=bright-black
+6| "   One turn.                                                                                    "
+  style 0-0 bg=bright-magenta
+  style 1-95 bg=bright-black
 7| "                                                                                                "
-  style 0-95 bg=bright-black
+  style 0-0 bg=bright-magenta
+  style 1-95 bg=bright-black
 8| <blank>
 9| "Assistant                                                                                       "
   style 0-8 fg=bright-magenta bold underline
-10| "Response                                                                                        "
-  style 0-7 bold
-11| "                                                                                                "
-  style 0-95 bg=bright-black
-12| "  Done.                                                                                         "
-  style 0-95 bg=bright-black
-13| "                                                                                                "
-  style 0-95 bg=bright-black
-14| "Status · Model wait 0.0s                                                                        "
+10| <blank>
+11| "   Done."
+12| "Status · Model wait 0.0s                                                                        "
   style 0-23 dim
-15| <blank>
-16| "/workspace/project  idle                                                                        "
+13| <blank>
+14| "/workspace/project  idle                                                                        "
   style 0-23 dim
-17| "idle · ↑0 ↓0 · deepseek-v4-flash [deepseek-official] · tools collapsed                          "
+15| "idle · ↑0 ↓0 · deepseek-v4-flash [deepseek-official] · tools collapsed                          "
   style 0-69 dim
-18| "╭─ dsh ────────────────────────────────────────── deepseek-v4-flash [deepseek-official] · ask ─╮"
+16| "╭─ dsh ────────────────────────────────────────── deepseek-v4-flash [deepseek-official] · ask ─╮"
   style 0-95 fg=bright-magenta
-19| "│                                                                                              │"
+17| "│                                                                                              │"
   style 0-0 fg=bright-magenta
   style 2-2 inverse
   style 95-95 fg=bright-magenta
-20| "╰──────────────────────────────────────────────────────────────────────────────────────────────╯"
+18| "╰──────────────────────────────────────────────────────────────────────────────────────────────╯"
   style 0-95 fg=bright-magenta
-21-35| <blank>
+19-35| <blank>

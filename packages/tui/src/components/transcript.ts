@@ -228,9 +228,10 @@ function paintBlock(
  * assistant body, reasoning; tool cards reuse {@link paintBlock} without a
  * Container). A block is an optional 1-column background bar in the left
  * gutter, the recessed panel background behind the body, and shared padding,
- * so every block indents, truncates, and spaces identically. Callers use the
- * default form (panel, no bar) today; the bar and flat forms arrive with the
- * phases that migrate each block onto it.
+ * so every block indents, truncates, and spaces identically. The message
+ * blocks use all three forms: the user message bars with `accent`, reasoning
+ * bars with `panel` (an invisible rail on the panel floor), and the assistant
+ * body renders flat (no paint at all).
  */
 class MessageBlock extends Container {
   constructor(
@@ -299,14 +300,17 @@ export class HeaderComponent implements Component {
 
 /**
  * A user or steering prompt in the transcript. An underlined accent role header
- * plus blank-line spacing separate it from surrounding blocks; body lines carry
- * no prefix or indent, so a terminal drag-select copies the prompt verbatim.
+ * plus blank-line spacing separate it from surrounding blocks; the body sits on
+ * the panel floor behind a 1-column accent bar (the opencode user-block blue
+ * rail), so its content column indents 3 and a drag-select copies the bar and
+ * padding spaces along with the prompt — the accepted trade for the shared
+ * block geometry.
  */
 export class UserMessageComponent extends Container {
   constructor(text: string, palette: Palette, mdTheme: MarkdownTheme, label = 'You') {
     super()
     this.addChild(new Text(messageHeader(label, palette.accent, palette), 0, 0))
-    const body = new MessageBlock(palette)
+    const body = new MessageBlock(palette, { bar: 'accent' })
     body.addChild(new Markdown(displayText(text), 0, 0, mdTheme, { color: value => palette.text(value) }, {
       preserveOrderedListMarkers: true,
       preserveBackslashEscapes: true,
@@ -316,10 +320,14 @@ export class UserMessageComponent extends Container {
 }
 
 /**
- * Children of a settled assistant message: optional reasoning block then the
- * response text. A folded continuation (a later step of a turn while tool cards
- * are hidden) drops the `Assistant` header and renders nothing when it has no
- * visible body, so tool-only steps leave no blank segment behind.
+ * Children of a settled assistant message: an optional reasoning block (the
+ * panel-floored Thinking block, collapsed to a one-row chip or expanded with
+ * its muted body), a blank spacer, then the response text as a flat unpainted
+ * block indented to the shared content column — no `Response` subtitle, so the
+ * body reads as one continuation of the `Assistant` header. A folded
+ * continuation (a later step of a turn while tool cards are hidden) drops the
+ * `Assistant` header and renders nothing when it has no visible body, so
+ * tool-only steps leave no blank segment behind.
  */
 function assistantMessageChildren(
   content: readonly ContentBlock[],
@@ -338,16 +346,26 @@ function assistantMessageChildren(
   }
   if (showsReasoning) {
     const collapsed = reasoningMode === 'collapsed'
-    children.push(
-      new Text(palette.italic(palette.dim(collapsed ? '▸ Thinking' : '▾ Thinking')), 0, 0),
-    )
-    if (!collapsed) {
-      children.push(new Markdown(reasoning, 0, 0, mdTheme, { color: value => palette.dim(value), italic: true }))
+    if (collapsed) {
+      // A single panel row: the title chip lies on the full-width panel floor.
+      const chip = new MessageBlock(palette, { bar: 'panel', paddingY: 0 })
+      chip.addChild(new Text(palette.italic(palette.dim('▸ Thinking')), 0, 0))
+      children.push(chip)
+    } else {
+      // The opencode thinking block: panel floor, invisible bar column, an
+      // italic dim title, a blank row, then the muted (non-italic) body.
+      const block = new MessageBlock(palette, { bar: 'panel' })
+      block.addChild(new Text(palette.italic(palette.dim('▾ Thinking')), 0, 0))
+      block.addChild(new Spacer(1))
+      block.addChild(new Markdown(reasoning, 0, 0, mdTheme, { color: value => palette.dim(value) }))
+      children.push(block)
     }
   }
   if (text) {
-    if (!foldedContinuation) children.push(new Text(palette.bold(palette.text('Response')), 0, 0))
-    const body = new MessageBlock(palette)
+    // The blank line that separated the old panel's top padding row now comes
+    // from this spacer, in front of the flat (unpainted) body.
+    children.push(new Spacer(1))
+    const body = new MessageBlock(palette, { panel: false, paddingY: 0 })
     body.addChild(new Markdown(text, 0, 0, mdTheme, { color: value => palette.text(value) }))
     children.push(body)
   }

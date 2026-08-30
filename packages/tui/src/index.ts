@@ -1380,9 +1380,10 @@ function buildResumeArgv(sessionId: string): string[] {
 
 /**
  * Host-owned process handoff for the production TUI: spawn the same dsh
- * invocation in the target session's workspace, then exit this process so the
- * child owns the terminal. Rejects only if the child cannot be spawned; once
- * spawned the current process exits and this promise never settles.
+ * invocation in the target session's workspace and stay as a thin wrapper
+ * until the replacement exits. Keeping the parent alive preserves the
+ * terminal/shell relationship; when the child TUI exits, this process exits
+ * with the child's status. Rejects only if the child cannot be spawned.
  */
 function handoffResume(sessionId: string, cwd: string): Promise<never> {
   return new Promise<never>((_resolve, reject) => {
@@ -1396,8 +1397,8 @@ function handoffResume(sessionId: string, cwd: string): Promise<never> {
       stdio: 'inherit',
     })
     child.once('error', reject)
-    child.once('spawn', () => {
-      process.exit(0)
+    child.once('exit', (code, signal) => {
+      process.exit(code ?? (signal === null ? 0 : 1))
     })
   })
 }

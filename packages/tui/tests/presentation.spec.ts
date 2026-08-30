@@ -46,6 +46,7 @@ describe('palette', () => {
     expect(paletteSpec('dark').colors.accent.open).toBe('95')
     expect(paletteSpec('light').colors.code.open).toBe('34')
     expect(paletteSpec('dark').colors.code.open).toBe('36')
+    expect(paletteSpec('dark').backgrounds.panel.open).toBe('100')
     expect(paletteSpec('dark').attributes.bold.open).toBe('1')
   })
 
@@ -54,10 +55,12 @@ describe('palette', () => {
     expect(enabled.accent('x')).toBe('\x1b[95mx\x1b[39m')
     expect(enabled.bold('x')).toBe('\x1b[1mx\x1b[22m')
     expect(enabled.text('x')).toBe('x')
+    expect(enabled.panel('x')).toBe('\x1b[100mx\x1b[49m')
     expect(enabled.bold(enabled.accent('x'))).toBe('\x1b[1m\x1b[95mx\x1b[39m\x1b[22m')
     const disabled = createPalette(false)
     expect(disabled.accent('x')).toBe('x')
     expect(disabled.bold('x')).toBe('x')
+    expect(disabled.panel('x')).toBe('x')
   })
 
   it('paints brand art with fixed truecolor ink and the gradient per character', () => {

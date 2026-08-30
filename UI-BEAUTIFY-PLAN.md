@@ -6,7 +6,7 @@
 ## 1. 背景与需求
 
 - 用户要求：TUI 界面美化，输入框需要有边框；样式参考 grok build 与 opencode tui。
-- 目标：在保持「主题无关（仅标准 16 色 + SGR 属性，无背景色/真彩/扩展色）、全部既有功能不变」的前提下，把输入区升级为带圆角边框的现代卡片式输入框，并完成整体视觉收口。
+- 目标：在保持「主题无关（仅标准 16 色 + SGR 属性；背景仅用标准 16 色 panel 角色，无真彩/扩展色）、全部既有功能不变」的前提下，把输入区升级为带圆角边框的现代卡片式输入框，并完成整体视觉收口。
 - 交付：本计划文档 + `UI-BEAUTIFY-GOAL.md`（goal 提示词，可直接粘贴到 dsh goal 模式驱动实现）。
 
 ## 2. 现状（已核实，HEAD 9b8b39c）
@@ -24,7 +24,7 @@
   - `StatusCardComponent`：`╭─ Title ─...╮`（`components/dialogs.ts:216-223`，dim）。
 - 测试约束：
   - 13 个 keyless 语义快照逐字节比对（`tests/tui.snapshot.spec.ts` + `tests/snapshots/*.expected.txt`）；
-  - `checkpoint()` 强制 `themeViolations()` 为空（无 256 色/真彩/背景色）；
+  - `checkpoint()` 强制 `themeViolations()` 为空（无 256 色/真彩；标准 16 色背景除外）；
   - `autocomplete.spec.ts` 等用 `toContain('dsh > …')` 断言子串，边框不会破坏。
 - 构建约束：根 `lib/tui.mjs` / `lib/startup.mjs` 为已提交的自包含 bundle（CI 重建并 diff），源码改动后必须 `pnpm build` 重生成并提交。
 

@@ -1,7 +1,7 @@
 terminal 96x36 buffer=normal length=36 base=0 viewport=0
 lifecycle started=1 stopped=0 progress=active
 title "DSH snapshot"
-cursor hidden column=2 viewportRow=16 bufferRow=16
+cursor hidden column=2 viewportRow=20 bufferRow=20
 viewport
 0| " DEEPSEEK HARNESS"
   style 1-8 fg=bright-magenta bold
@@ -13,28 +13,38 @@ viewport
 3| <blank>
 4| "You                                                                                             "
   style 0-2 fg=bright-magenta bold underline
-5| "Show the live update.                                                                           "
-6| <blank>
-7| "Assistant                                                                                       "
+5| "                                                                                                "
+  style 0-95 bg=bright-black
+6| "  Show the live update.                                                                         "
+  style 0-95 bg=bright-black
+7| "                                                                                                "
+  style 0-95 bg=bright-black
+8| <blank>
+9| "Assistant                                                                                       "
   style 0-8 fg=bright-magenta bold underline
-8| "▸ Thinking                                                                                      "
+10| "▸ Thinking                                                                                      "
   style 0-9 dim italic
-9| "Response                                                                                        "
+11| "Response                                                                                        "
   style 0-7 bold
-10| "Streaming visible state.                                                                        "
-11| "Status · Model wait 2.0s · Thinking 1.0s · Response 2.0s                                        "
+12| "                                                                                                "
+  style 0-95 bg=bright-black
+13| "  Streaming visible state.                                                                      "
+  style 0-95 bg=bright-black
+14| "                                                                                                "
+  style 0-95 bg=bright-black
+15| "Status · Model wait 2.0s · Thinking 1.0s · Response 2.0s                                        "
   style 0-55 dim
-12| <blank>
-13| "/workspace/project  running                                                                     "
+16| <blank>
+17| "/workspace/project  running                                                                     "
   style 0-26 dim
-14| "● responding · 6.0s · ↑0 ↓0 · deepseek-v4-flash [deepseek-official] · tools collapsed           "
+18| "● responding · 6.0s · ↑0 ↓0 · deepseek-v4-flash [deepseek-official] · tools collapsed           "
   style 0-84 dim
-15| "╭─ dsh ────────────────────────────────────────── deepseek-v4-flash [deepseek-official] · ask ─╮"
+19| "╭─ dsh ────────────────────────────────────────── deepseek-v4-flash [deepseek-official] · ask ─╮"
   style 0-95 fg=bright-magenta
-16| "│                                                                                              │"
+20| "│                                                                                              │"
   style 0-0 fg=bright-magenta
   style 2-2 inverse
   style 95-95 fg=bright-magenta
-17| "╰──────────────────────────────────────────────────────────────────────────────────────────────╯"
+21| "╰──────────────────────────────────────────────────────────────────────────────────────────────╯"
   style 0-95 fg=bright-magenta
-18-35| <blank>
+22-35| <blank>

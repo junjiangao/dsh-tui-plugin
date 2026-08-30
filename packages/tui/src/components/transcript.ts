@@ -12,6 +12,7 @@ import {
   Spacer,
   Text,
   truncateToWidth,
+  visibleWidth,
   wrapTextWithAnsi,
   type Component,
   type MarkdownTheme,
@@ -124,6 +125,39 @@ function messageHeader(label: string, color: (text: string) => string, palette: 
   return palette.bold(palette.underline(color(displayText(label))))
 }
 
+/**
+ * A container that paints its children as one recessed background panel. The
+ * panel spans the render width, with horizontal and vertical padding, so a
+ * message body reads as a distinct block from headers, reasoning, and tool
+ * cards. It uses the palette's single `panel` background role, which stays
+ * within the standard 16-color ANSI set.
+ */
+class BackgroundPanel extends Container {
+  constructor(
+    private readonly palette: Palette,
+    private readonly paddingX = 2,
+    private readonly paddingY = 1,
+  ) {
+    super()
+  }
+
+  override render(width: number): string[] {
+    const padX = Math.min(this.paddingX, Math.max(0, Math.floor((width - 1) / 2)))
+    const innerWidth = Math.max(1, width - padX * 2)
+    const body = super.render(innerWidth)
+    if (body.length === 0) return []
+    const padRow = (line: string): string => {
+      const content = `${' '.repeat(padX)}${truncateToWidth(line, innerWidth, '')}`
+      return this.palette.panel(content + ' '.repeat(Math.max(0, width - visibleWidth(content))))
+    }
+    const rows: string[] = []
+    for (let index = 0; index < this.paddingY; index += 1) rows.push(this.palette.panel(' '.repeat(width)))
+    for (const line of body) rows.push(padRow(line))
+    for (let index = 0; index < this.paddingY; index += 1) rows.push(this.palette.panel(' '.repeat(width)))
+    return rows
+  }
+}
+
 /** How reasoning blocks render: hidden, collapsed to a header, or expanded. */
 export type ReasoningVisibility = 'hidden' | 'collapsed' | 'expanded'
 
@@ -183,10 +217,12 @@ export class UserMessageComponent extends Container {
   constructor(text: string, palette: Palette, mdTheme: MarkdownTheme, label = 'You') {
     super()
     this.addChild(new Text(messageHeader(label, palette.accent, palette), 0, 0))
-    this.addChild(new Markdown(displayText(text), 0, 0, mdTheme, { color: value => palette.text(value) }, {
+    const body = new BackgroundPanel(palette)
+    body.addChild(new Markdown(displayText(text), 0, 0, mdTheme, { color: value => palette.text(value) }, {
       preserveOrderedListMarkers: true,
       preserveBackslashEscapes: true,
     }))
+    this.addChild(body)
   }
 }
 
@@ -222,7 +258,9 @@ function assistantMessageChildren(
   }
   if (text) {
     if (!foldedContinuation) children.push(new Text(palette.bold(palette.text('Response')), 0, 0))
-    children.push(new Markdown(text, 0, 0, mdTheme, { color: value => palette.text(value) }))
+    const body = new BackgroundPanel(palette)
+    body.addChild(new Markdown(text, 0, 0, mdTheme, { color: value => palette.text(value) }))
+    children.push(body)
   }
   return children
 }

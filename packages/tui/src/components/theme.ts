@@ -33,6 +33,9 @@ export type ColorRole = (text: Colorable) => Colored
 /** Applies one SGR attribute; accepts colored or uncolored text and preserves its color. */
 export type AttributeRole = <T extends string>(text: T) => T
 
+/** Applies one SGR background; accepts colored or uncolored text and preserves its foreground. */
+export type BackgroundRole = (text: string) => string
+
 /**
  * Theme-agnostic role colors and SGR attribute wrappers.
  *
@@ -53,6 +56,8 @@ export interface Palette {
   warning: ColorRole
   error: ColorRole
   code: ColorRole
+  /** The one recessed background tone: message-body panels and cards. */
+  panel: BackgroundRole
   bold: AttributeRole
   italic: AttributeRole
   underline: AttributeRole
@@ -66,6 +71,9 @@ export const COLOR_ROLES = ['text', 'dim', 'accent', 'brand', 'code', 'success',
 
 /** Names of the palette's attribute roles, in the order `/palette` prints them. */
 export const ATTRIBUTE_ROLES = ['bold', 'italic', 'underline', 'strike', 'selected'] as const
+
+/** Names of the palette's background roles, in the order `/palette` prints them. */
+export const BACKGROUND_ROLES = ['panel'] as const
 
 /** One role's SGR parameters and the reason it carries them. */
 export interface RoleSpec {
@@ -86,10 +94,11 @@ export interface RoleSpec {
  * those to the user's active theme, so the TUI stays legible on any background.
  *
  * @param scheme - Active terminal color scheme; only `code` differs between them.
- * @returns The SGR spec for every color and attribute role.
+ * @returns The SGR spec for every color, background, and attribute role.
  */
 export function paletteSpec(scheme: TerminalColorScheme): {
   readonly colors: Readonly<Record<typeof COLOR_ROLES[number], RoleSpec>>
+  readonly backgrounds: Readonly<Record<typeof BACKGROUND_ROLES[number], RoleSpec>>
   readonly attributes: Readonly<Record<typeof ATTRIBUTE_ROLES[number], RoleSpec>>
 } {
   return {
@@ -109,6 +118,11 @@ export function paletteSpec(scheme: TerminalColorScheme): {
       success: { open: '32', close: '39', purpose: 'Succeeded calls, and a diff\'s added lines' },
       warning: { open: '33', close: '39', purpose: 'Pending calls and warnings' },
       error: { open: '31', close: '39', purpose: 'Failures, signals, and a diff\'s removed lines' },
+    },
+    backgrounds: {
+      // Bright black (ANSI 100) is a neutral recessed panel in both dark and
+      // light terminal themes without leaving the standard 16-color set.
+      panel: { open: '100', close: '49', purpose: 'Message-body panels and cards' },
     },
     attributes: {
       bold: { open: '1', close: '22', purpose: 'Emphasis; composes with any color' },
@@ -141,6 +155,7 @@ export function createPalette(enabled: boolean, scheme: TerminalColorScheme = 'd
   const spec = paletteSpec(scheme)
   const roles = {} as Record<string, unknown>
   for (const name of COLOR_ROLES) roles[name] = ansi(spec.colors[name], enabled)
+  for (const name of BACKGROUND_ROLES) roles[name] = ansi(spec.backgrounds[name], enabled)
   for (const name of ATTRIBUTE_ROLES) roles[name] = ansi(spec.attributes[name], enabled)
   return roles as unknown as Palette
 }
@@ -271,7 +286,7 @@ export function renderPalette(
   colorEnabled: boolean,
 ): string[] {
   const spec = paletteSpec(scheme)
-  const width = Math.max(...[...COLOR_ROLES, ...ATTRIBUTE_ROLES].map(name => name.length))
+  const width = Math.max(...[...COLOR_ROLES, ...BACKGROUND_ROLES, ...ATTRIBUTE_ROLES].map(name => name.length))
   // Two rows per role: the painted sample beside its name and SGR pair, then the
   // purpose indented under it. Splitting the purpose onto its own row keeps every
   // sample on one visual line at the narrow widths a side-by-side pane gives.
@@ -288,6 +303,10 @@ export function renderPalette(
   ]
   for (const name of COLOR_ROLES) {
     rows.push(head(name, spec.colors[name], palette[name](PALETTE_SAMPLE)), purpose(spec.colors[name]))
+  }
+  rows.push('', palette.dim('Backgrounds — one recessed panel tone; compose with any foreground.'))
+  for (const name of BACKGROUND_ROLES) {
+    rows.push(head(name, spec.backgrounds[name], palette[name](PALETTE_SAMPLE)), purpose(spec.backgrounds[name]))
   }
   rows.push('', palette.dim('Attributes — compose with any color, in either order.'))
   for (const name of ATTRIBUTE_ROLES) {

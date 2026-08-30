@@ -262,7 +262,10 @@ export class HeadlessTerminal implements Terminal {
 
   /**
    * Reject palette output that would become theme-specific in a user's terminal.
-   * @returns One location per RGB, extended-palette, or explicit-background cell.
+   * Standard 16-color backgrounds are allowed (the `panel` role uses bright
+   * black), while RGB, extended-palette, and non-default extended backgrounds
+   * are still reported.
+   * @returns One location per RGB or extended-palette foreground/background cell.
    */
   themeViolations(): string[] {
     const violations: string[] = []
@@ -278,7 +281,6 @@ export class HeadlessTerminal implements Terminal {
           cell.isBgRGB() ? 'rgb-bg' : undefined,
           cell.isFgPalette() && cell.getFgColor() > 15 ? `extended-fg-${cell.getFgColor()}` : undefined,
           cell.isBgPalette() && cell.getBgColor() > 15 ? `extended-bg-${cell.getBgColor()}` : undefined,
-          !cell.isBgDefault() ? 'explicit-bg' : undefined,
         ].filter((reason): reason is string => reason !== undefined)
         if (reasons.length > 0) violations.push(`${row}:${column} ${reasons.join(',')}`)
       }

@@ -26,6 +26,7 @@ import type { Context } from '@deepseek-ai/cordis'
 // Empty type imports carry the Context service merges this plugin's rows
 // depend on, so the loader rejects a composition that misses them.
 import type {} from '@deepseek-ai/dsh-agent'
+import type {} from '@deepseek-ai/dsh-agent-default-model'
 import type {} from '@deepseek-ai/dsh-agent-loop'
 import type {} from '@deepseek-ai/dsh-commands'
 import type {} from '@deepseek-ai/dsh-goal'
@@ -114,6 +115,7 @@ export const name = 'tui'
  */
 export const inject = [
   'agents',
+  'agentDefaultModel',
   'sessions',
   'commands',
   'tools',
@@ -1278,7 +1280,14 @@ function parseModelRoute(value: string | undefined): { provider: string; model: 
 async function run(ctx: Context, config: Config, runtime: TuiRuntime): Promise<void> {
   const startup = ctx.get(TUI_STARTUP_SERVICE)
   const route = parseModelRoute(config.model)
-  const agentOptions = route === undefined ? undefined : { provider: route.provider, model: route.model }
+  // An explicit --model route wins; without one the agent boots on the
+  // deployment's default model (the same service web entry points consume).
+  const defaultSelection = route === undefined ? ctx.get('agentDefaultModel')?.currentSelection() : undefined
+  const agentOptions = route !== undefined
+    ? { provider: route.provider, model: route.model }
+    : defaultSelection === undefined
+      ? undefined
+      : { provider: defaultSelection.provider, model: defaultSelection.model }
   // The mutable selection is shared between the channel and the agent's
   // prompt assembly: /model writes it here, the setup hook's listeners apply
   // it atomically at each step boundary.
@@ -1331,8 +1340,13 @@ async function run(ctx: Context, config: Config, runtime: TuiRuntime): Promise<v
       },
     })
   // The logged request header wins over the invocation route; both are only
-  // the starting point the selector can change.
-  modelSelection.current = initialTarget(handle.agent)
+  // the starting point the selector can change. Before a request header
+  // exists, the deployment's full default selection (effort included) is the
+  // initial target, matching the web entry points.
+  const initial = initialTarget(handle.agent)
+  modelSelection.current = handle.agent.session.requestHeader() === undefined
+    ? defaultSelection ?? initial
+    : initial ?? defaultSelection
   ctx.effect(() => {
     const controller = createTuiChat(ctx, config, runtime, handle, modelSelection)
     return () => controller.dispose()

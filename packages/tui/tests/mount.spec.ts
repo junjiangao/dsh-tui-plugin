@@ -102,6 +102,33 @@ describe('mountTui', () => {
     await terminal.dispose()
   })
 
+  it('boots on the agent-default-model selection when no model route is configured', async () => {
+    const ctx = new Context()
+    await ctx.plugin(SessionStore)
+    await ctx.plugin(AgentRegistry)
+    await mountChannelServices(ctx)
+    ctx.provide('agentDefaultModel', {
+      currentSelection: () => ({
+        provider: 'settings-provider',
+        model: 'settings-model',
+        reasoningEffort: 'low',
+      }),
+    })
+    const installed = installFakeAgentFactory(ctx)
+    const terminal = new HeadlessTerminal(80, 24)
+    mountTui(ctx, { sessionId: 'fresh-default' }, {
+      terminal,
+      exit: () => {},
+    })
+    await terminal.waitForFrame()
+    expect(installed.agents[0]?.options).toEqual({ provider: 'settings-provider', model: 'settings-model' })
+    // The status footer shows the default selection instead of `model unset`;
+    // the configured reasoning effort is part of that initial selection.
+    expect(await terminal.snapshot()).toContain('model settings-model low')
+    await ctx.fiber.dispose()
+    await terminal.dispose()
+  })
+
   it('keeps the session default route when the model flag is malformed or absent', async () => {
     const ctx = new Context()
     await ctx.plugin(SessionStore)

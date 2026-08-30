@@ -37,6 +37,8 @@ export interface CommandControllerDeps {
   queueModelCommand(raw: string): void
   /** Queue a `/preset` line for the preset controller. */
   queuePresetCommand(raw: string): void
+  /** Queue a `/permission` line for the permission controller. */
+  queuePermissionCommand(raw: string): void
   /** Open the `/resume` session picker. */
   showResume(): void
   /** Append the session-status diagnostic card to the transcript. */
@@ -223,6 +225,15 @@ export function createCommandController(deps: CommandControllerDeps): CommandCon
       input: { hint: '[id]' },
       handler: ({ rawInput }) => {
         deps.queuePresetCommand(rawInput)
+        return { kind: 'success' }
+      },
+    })
+    commandCtx.commands.register({
+      name: 'permission',
+      description: 'Show current permission mode; switch with /permission [read-only|workspace-write|danger-full-access]',
+      input: { hint: '[read-only|workspace-write|danger-full-access]' },
+      handler: ({ rawInput }) => {
+        deps.queuePermissionCommand(rawInput)
         return { kind: 'success' }
       },
     })

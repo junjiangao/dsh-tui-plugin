@@ -1,7 +1,7 @@
 terminal 56x36 buffer=normal length=36 base=0 viewport=0
 lifecycle started=1 stopped=0 progress=inactive
 title "DSH snapshot"
-cursor hidden column=2 viewportRow=33 bufferRow=33
+cursor hidden column=2 viewportRow=34 bufferRow=34
 buffer
 0| " DEEPSEEK HARNESS"
   style 1-8 fg=bright-magenta bold
@@ -20,96 +20,99 @@ buffer
   style 0-2 dim
   style 3-16 fg=bright-magenta bold
   style 17-55 dim
-8| "│  Session:    main-session                            │"
+8| "│  Session:     main-session                           │"
   style 0-0 dim
-  style 3-12 dim
+  style 3-13 dim
   style 55-55 dim
-9| "│  Title:      untitled                                │"
+9| "│  Title:       untitled                               │"
   style 0-0 dim
-  style 3-12 dim
+  style 3-13 dim
   style 55-55 dim
-10| "│  Directory:  /workspace/project                      │"
+10| "│  Directory:   /workspace/project                     │"
   style 0-0 dim
-  style 3-12 dim
+  style 3-13 dim
   style 55-55 dim
-11| "│  Model:      deepseek-official/deepseek-v4-pro       │"
+11| "│  Model:       deepseek-official/deepseek-v4-pro      │"
   style 0-0 dim
-  style 3-12 dim
+  style 3-13 dim
   style 55-55 dim
-12| "│              (effort low; reasoning blocks           │"
+12| "│               (effort low; reasoning blocks          │"
   style 0-0 dim
-  style 15-55 dim
-13| "│              collapsed)                              │"
+  style 16-55 dim
+13| "│               collapsed)                             │"
   style 0-0 dim
-  style 15-24 dim
+  style 16-25 dim
   style 55-55 dim
-14| "│  Preset:     none                                    │"
+14| "│  Preset:      none                                   │"
   style 0-0 dim
-  style 3-12 dim
+  style 3-13 dim
   style 55-55 dim
-15| "│                                                      │"
+15| "│  Permission:  ask                                    │"
   style 0-0 dim
+  style 3-13 dim
   style 55-55 dim
-16| "│  Agent:      idle · 2 events · 0 turns · 0 steps · 0 │"
-  style 0-0 dim
-  style 3-12 dim
-  style 55-55 dim
-17| "│              tool calls                              │"
+16| "│                                                      │"
   style 0-0 dim
   style 55-55 dim
-18| "│                                                      │"
+17| "│  Agent:       idle · 2 events · 0 turns · 0 steps ·  │"
+  style 0-0 dim
+  style 3-13 dim
+  style 55-55 dim
+18| "│               0 tool calls                           │"
   style 0-0 dim
   style 55-55 dim
-19| "│  Tokens:     1,250 input + 340 output                │"
-  style 0-0 dim
-  style 3-12 dim
-  style 55-55 dim
-20| "│  KV cache:   [███████████░░░░░] 67% hit (3,000 read  │"
-  style 0-0 dim
-  style 3-12 dim
-  style 15-15 dim
-  style 16-26 fg=bright-magenta
-  style 27-32 dim
-  style 55-55 dim
-21| "│              + 250 write)                            │"
+19| "│                                                      │"
   style 0-0 dim
   style 55-55 dim
-22| "│  Context:    [█████░░░░░░░░░░░] 33% used (42,000 /   │"
+20| "│  Tokens:      1,250 input + 340 output               │"
   style 0-0 dim
-  style 3-12 dim
-  style 15-15 dim
-  style 16-20 fg=bright-magenta
-  style 21-32 dim
+  style 3-13 dim
   style 55-55 dim
-23| "│              128,000)                                │"
+21| "│  KV cache:    [███████████░░░░░] 67% hit (3,000 read │"
+  style 0-0 dim
+  style 3-13 dim
+  style 16-16 dim
+  style 17-27 fg=bright-magenta
+  style 28-33 dim
+  style 55-55 dim
+22| "│               + 250 write)                           │"
   style 0-0 dim
   style 55-55 dim
-24| "│                                                      │"
+23| "│  Context:     [█████░░░░░░░░░░░] 33% used (42,000 /  │"
+  style 0-0 dim
+  style 3-13 dim
+  style 16-16 dim
+  style 17-21 fg=bright-magenta
+  style 22-33 dim
+  style 55-55 dim
+24| "│               128,000)                               │"
   style 0-0 dim
   style 55-55 dim
-25| "│  Created:    2026-07-21 06:32:06 UTC                 │"
+25| "│                                                      │"
   style 0-0 dim
-  style 3-12 dim
   style 55-55 dim
-26| "│  Active:     2026-07-21 06:32:06 UTC                 │"
+26| "│  Created:     2026-07-21 06:32:06 UTC                │"
   style 0-0 dim
-  style 3-12 dim
+  style 3-13 dim
   style 55-55 dim
-27| "╰──────────────────────────────────────────────────────╯"
+27| "│  Active:      2026-07-21 06:32:06 UTC                │"
+  style 0-0 dim
+  style 3-13 dim
+  style 55-55 dim
+28| "╰──────────────────────────────────────────────────────╯"
   style 0-55 dim
-28| <blank>
-29| "/workspace/project  idle                                "
+29| <blank>
+30| "/workspace/project  idle                                "
   style 0-23 dim
-30| "idle · ↑1.3k ↓340 · cache 67% · 33% context ·           "
+31| "idle · ↑1.3k ↓340 · cache 67% · 33% context ·           "
   style 0-55 dim
-31| "deepseek-v4-pro [deepseek-official] low · tools c…      "
+32| "deepseek-v4-pro [deepseek-official] low · tools c…      "
   style 0-49 dim
-32| "╭─ dsh ─ deepseek-v4-pro [deepseek-official] low · a… ─╮"
+33| "╭─ dsh ─ deepseek-v4-pro [deepseek-official] low · a… ─╮"
   style 0-51 fg=bright-magenta
-33| "│                                                      │"
+34| "│                                                      │"
   style 0-0 fg=bright-magenta
   style 2-2 inverse
   style 55-55 fg=bright-magenta
-34| "╰──────────────────────────────────────────────────────╯"
+35| "╰──────────────────────────────────────────────────────╯"
   style 0-55 fg=bright-magenta
-35| <blank>

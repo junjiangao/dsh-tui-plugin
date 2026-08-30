@@ -88,6 +88,7 @@ import { installApprovalAnswerer } from './chat/approval.ts'
 import { createCommandController, goalStatusText, type CommandController } from './chat/commands.ts'
 import { createModelController, type ModelController } from './chat/model-command.ts'
 import { createPresetController, sessionPreset, type PresetController } from './chat/presets.ts'
+import { createPermissionController, permissionPresetLabel, type PermissionController } from './chat/permission.ts'
 import { createResumeController, type ResumeController } from './chat/resume.ts'
 import { WorkspaceFileSearch } from './chat/file-autocomplete.ts'
 import { cacheHitRate, formatTokens, recordEventUsage, sessionTokens } from './chat/tokens.ts'
@@ -303,6 +304,10 @@ export function createTuiChat(
   ui.addChild(statusLine)
   ui.addChild(questionContainer)
   ui.addChild(inputBox)
+  // Inline permission selector: the compact mode panel renders below the input
+  // box so the user can pick ask/never without leaving the editor area.
+  const permissionContainer = new Container()
+  ui.addChild(permissionContainer)
   ui.setFocus(editor)
 
   const updatePromptLine = (): void => {
@@ -348,9 +353,24 @@ export function createTuiChat(
 
   const currentApprovalPolicy = (): ApprovalPolicy => approvalPolicy
 
+  const currentPermissionLabel = (): string => {
+    const service = (ctx as {
+      permissionPresets?: {
+        current(events: readonly SessionEvent[]): string
+        optionOf(name: string): { name: string }
+      }
+    }).permissionPresets
+    if (service !== undefined) {
+      const current = service.current(agent.session.events)
+      if (current === 'custom') return 'Custom'
+      return permissionPresetLabel(current, service.optionOf(current).name)
+    }
+    return currentApprovalPolicy()
+  }
+
   const updateInputBox = (): void => {
     const model = selection.current === undefined ? undefined : compactTargetLabel(selection.current)
-    const permission = currentApprovalPolicy()
+    const permission = currentPermissionLabel()
     inputBox.setRightLabel(
       model === undefined
         ? displayText(permission)
@@ -1037,6 +1057,7 @@ export function createTuiChat(
       modelController.clearOverlay()
       modelController.detach()
       presetController.clearOverlay()
+      permissionController.clearOverlay()
       await commands.dispose()
       fileSearch.dispose()
       disposeApproval()
@@ -1102,6 +1123,22 @@ export function createTuiChat(
               : {},
           })
       }
+      if (placement === 'inline-below') {
+        const modal = new InlineModalComponent(
+          component,
+          resolved.permissionDialogWidth,
+          resolved.permissionDialogMaxHeight,
+        )
+        permissionContainer.clear()
+        permissionContainer.addChild(modal)
+        ui.setFocus(component)
+        return {
+          hide(): void {
+            permissionContainer.clear()
+            ui.setFocus(editor)
+          },
+        }
+      }
       const modal = new InlineModalComponent(
         component,
         resolved.questionDialogWidth,
@@ -1153,6 +1190,19 @@ export function createTuiChat(
     requestRender,
     isDisposed: () => disposed,
   })
+  // The permission controller owns the /permission mode selector below the
+  // input box and the direct ask/never policy switch.
+  const permissionController: PermissionController = createPermissionController({
+    ctx,
+    agent,
+    resolved,
+    palette,
+    overlayManager,
+    currentPolicy: currentApprovalPolicy,
+    appendNotice,
+    requestRender,
+    isDisposed: () => disposed,
+  })
   // The /status card renders one point-in-time diagnostic snapshot: session
   // identity, agent progress, token buckets with cache rate, context
   // occupancy, and activity timestamps.
@@ -1186,6 +1236,7 @@ export function createTuiChat(
         ['Directory', displayText(cwd)],
         ['Model', `${model} ${palette.dim(`(effort ${effort}; reasoning blocks ${reasoningMode})`)}`],
         ['Preset', displayText(ctx.get('agentPresets')?.composedPreset(agent.ctx) ?? 'none')],
+        ['Permission', displayText(currentPermissionLabel())],
       ],
       [
         ['Agent', [
@@ -1266,6 +1317,7 @@ export function createTuiChat(
     referenceResolver,
     queueModelCommand: (raw) => { modelController.queueModelCommand(raw) },
     queuePresetCommand: (raw) => { presetController.queuePresetCommand(raw) },
+    queuePermissionCommand: (raw) => { permissionController.queuePermissionCommand(raw) },
     showResume: () => { resume.showResume() },
     showStatusCard,
     loadHistory,

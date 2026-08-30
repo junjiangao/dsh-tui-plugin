@@ -10,8 +10,8 @@ The interactive full-screen terminal front door for DeepSeek Harness agents. Mou
 - **Transcript** — user/assistant messages, streaming text and reasoning deltas, per-step timing footers, and turn-end notices. Long sessions never build the whole component tree: the mount replays only the newest `maxInitialMessages` user messages and `/more` (or PageUp) loads earlier pages of `historyPageSize` messages on demand, with a resident ledger that evicts the oldest settled rows and cards under the `transcriptResidentMaxBytes` / `cardCacheEntries` budgets.
 - **Tool cards** — one card per tool call with `generic`, `terminal`, or `diff` presentation, collapsed/expanded via Ctrl+O, reasoning hidden via Ctrl+R; oversized diffs degrade to the full sides when `maxDiffEditLength` is exceeded.
 - **Interactions** — goal status rows, approval dialogs, `ask_user_question` dialogs, and extension overlays render through `ctx.tui.openOverlay`; one Ctrl+C cancels a running turn or clears a draft, an empty prompt shows a “press Ctrl+C again to exit” hint, two consecutive presses exit to the shell, and Esc cancels an active turn or overlay.
-- **Commands** — `/clear`, `/details`, `/exit`, `/help`, `/model`, `/more`, `/palette`, `/quit`, `/resume`, `/status`, plus the goal command unit's own commands; Ctrl+C×2 and Ctrl+D exit.
-- **Selection and completion** — the `/model` picker (provider/model/effort from `ctx.llm`), the `/resume` session picker (projection-cache titles, bounded concurrent scan), and `@`-file and session-reference completion with a bounded workspace index.
+- **Commands** — `/clear`, `/details`, `/exit`, `/help`, `/model`, `/more`, `/palette`, `/permission`, `/quit`, `/resume`, `/status`, plus the goal command unit's own commands; Ctrl+C×2 and Ctrl+D exit.
+- **Selection and completion** — the `/model` picker (provider/model/effort from `ctx.llm`), the `/resume` session picker (projection-cache titles, bounded concurrent scan), the `/permission` preset selector (read-only / workspace-write / full access) below the input box, and `@`-file and session-reference completion with a bounded workspace index.
 - **Status footer** — phase glyph, elapsed wall time (ticks on `statusIntervalMs` while running), queued steering, token buckets, KV-cache hit rate, context occupancy, model route, and tool-card mode, truncated to the terminal width; the terminal title follows the durable session title.
 
 ## Config
@@ -27,6 +27,7 @@ The interactive full-screen terminal front door for DeepSeek Harness agents. Mou
 | `resumeScanConcurrency` | number | `4` | Bounded title-scan parallelism for /resume. |
 | `questionDialogWidth` / `questionDialogMaxHeight` | number | `200` / `20` | Question dialog geometry. |
 | `modelDialogWidth` / `modelDialogMaxHeight` | number | `76` / `20` | Model picker geometry. |
+| `permissionDialogWidth` / `permissionDialogMaxHeight` | number | `64` / `10` | Permission selector geometry. |
 | `fileSearchMaxResults` / `fileSearchMaxEntries` | number | `20` / `10_000` | Bounded `@`-completion index. |
 | `fileSearchExcludedDirectories` | string[] | `['node_modules', '.git', …]` | Completion index exclusions. |
 | `showHardwareCursor` | boolean | `false` | Hardware cursor instead of the Pi text cursor. |

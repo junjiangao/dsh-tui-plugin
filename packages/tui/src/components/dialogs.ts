@@ -23,7 +23,7 @@ import type { LlmModelInfo, LlmModelReasoningInfo, ReasoningEffortId } from '@de
 import type { SessionId } from '@deepseek-ai/dsh-session'
 import type { SessionRecord } from '@deepseek-ai/dsh-session-query'
 import type { AskUserQuestionItem } from '@deepseek-ai/dsh-user-questions'
-import type { ApprovalOutcome } from '@deepseek-ai/dsh-user-approval'
+import { type ApprovalOutcome } from '@deepseek-ai/dsh-user-approval'
 import { BRACKETED_PASTE_END, BRACKETED_PASTE_START, displayText, sanitizePastedText } from './text.ts'
 import { selectTheme, type Palette } from './theme.ts'
 
@@ -1227,6 +1227,65 @@ export class QuestionDialog implements Component, Focusable {
   }
 }
 
+
+/** One row in the permission-mode selector. */
+export interface PermissionChoice {
+  /** Machine value sent when selected (preset key, or `ask`/`never` in the fallback). */
+  value: string
+  /** User-facing label. */
+  label: string
+  /** Optional one-line explanation shown after the label. */
+  description?: string
+  /** Whether this row is the effective current mode. */
+  current?: boolean
+}
+
+/** Permission-mode selector rendered below the input box. */
+export class PermissionDialog implements Component, Focusable {
+  private selectedIndex = 0
+  focused = false
+
+  constructor(
+    private readonly choices: readonly PermissionChoice[],
+    private readonly palette: Palette,
+    private readonly done: (value: string) => void,
+    private readonly cancel: () => void,
+  ) {
+    const currentIndex = choices.findIndex(choice => choice.current)
+    this.selectedIndex = currentIndex >= 0 ? currentIndex : 0
+  }
+
+  invalidate(): void {}
+
+  handleInput(data: string): void {
+    if (matchesKey(data, Key.up)) {
+      this.selectedIndex = this.selectedIndex === 0 ? this.choices.length - 1 : this.selectedIndex - 1
+    } else if (matchesKey(data, Key.down)) {
+      this.selectedIndex = this.selectedIndex === this.choices.length - 1 ? 0 : this.selectedIndex + 1
+    } else if (matchesKey(data, Key.enter)) {
+      const choice = this.choices[this.selectedIndex]
+      /* v8 ignore next -- the selector is built with a non-empty choice list and the index is always in range */
+      if (choice === undefined) return
+      this.done(choice.value)
+    } else if (matchesKey(data, Key.escape) || matchesKey(data, Key.ctrl('c'))) {
+      this.cancel()
+    }
+    this.invalidate()
+  }
+
+  render(width: number): string[] {
+    const rows: string[] = []
+    for (const [index, choice] of this.choices.entries()) {
+      const cursor = index === this.selectedIndex ? '›' : ' '
+      const currentMark = choice.current === true ? ' (current)' : ''
+      const row = ` ${cursor} ${choice.label}${currentMark}${choice.description === undefined ? '' : ` — ${choice.description}`}`
+      rows.push(index === this.selectedIndex ? this.palette.bold(this.palette.accent(row)) : row)
+    }
+    rows.push('')
+    rows.push(this.palette.dim('↑/↓ move • Enter select • Esc'))
+    return renderDialog('Permission mode', rows, width, this.palette)
+  }
+}
 
 /** One pending approval decision, rendered as a two-option modal. */
 export class ApprovalDialog implements Component, Focusable {

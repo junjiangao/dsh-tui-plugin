@@ -37,7 +37,7 @@ export interface TuiOverlayDriver {
   reportError(error: unknown): void
 }
 
-type TuiOverlayPlacement = 'overlay' | 'inline'
+type TuiOverlayPlacement = 'overlay' | 'inline' | 'inline-below'
 
 interface TuiModalHandle {
   hide(): void
@@ -167,7 +167,7 @@ export class TuiOverlayManager {
   /**
    * Queue one modal without assigning Cordis ownership.
    * @param request - component factory, constraints, and request signal.
-   * @param placement - terminal overlay for extensions, or inline for the built-in question panel.
+   * @param placement - terminal overlay for extensions, inline for the built-in question panel, or inline-below for the permission selector under the input box.
    * @returns an internal session that can close with an ownership reason.
    */
   open(request: TuiOverlayRequest, placement: TuiOverlayPlacement = 'overlay'): TuiOverlaySession & {

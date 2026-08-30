@@ -1,7 +1,7 @@
 # dsh-tui 消息三 block 样式对齐 opencode 优化计划（思考 / 正文 / 工具调用）
 
-> 状态：计划（2026-08-30），待批准后实施。
-> 基线：HEAD `dadf13c`（`feat(tui): add /permission mode selector below the input box`）；pi-tui patch 346 行；13 个 keyless 语义快照。
+> 状态：已实施（2026-08-30）：P0 `3810fbe`（块容器 + palette bar 角色）、P1+P2 `d0adb2b`（思考/正文块）、P3 `ea80e68`（工具块 + 授权双条）、P4（shimmer + driver）；lint/typecheck 全绿，40 文件 364 测试通过，14 个 keyless 快照按阶段刷新并逐字节复核，`lib/tui.mjs` 已重建。收口结论：块间距一致无需修正；块底 info 行保持 timing footer 现状不合入（见 §3.3）。
+> 基线：HEAD `dadf13c`（`feat(tui): add /permission mode selector below the input box`）；pi-tui patch 346 行；14 个 keyless 语义快照。
 > 前置：`UI-BEAUTIFY-PLAN.md` 已完成（输入框圆角边框、`BackgroundPanel` 消息背景面板、panel 背景角色）。本计划是其延续，聚焦消息流三种 block 的观感与交互。
 > 参考：opencode TUI（`/work/Repos/github/opencode/packages/tui`）。Go/bubbletea 版块渲染集中在 `internal/components/chat/message.go` 的 `renderContentBlock` / `renderText` / `renderToolDetails` / `renderToolTitle`（该版本已在 commit `f68374ad` 删除，需从 git 历史读取）；现行 TS/SolidJS 版入口在 `src/routes/session/index.tsx`，工具样式在 `src/util/tool-display.ts`、`src/context/thinking.ts`。
 

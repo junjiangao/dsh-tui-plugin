@@ -57,6 +57,7 @@ import { createPalette, markdownTheme, selectTheme } from './components/theme.ts
 import {
   ContextCardComponent,
   HeaderComponent,
+  SHIMMER_FRAME_MS,
   StreamingAssistantComponent,
   ToolCardComponent,
   UserMessageComponent,
@@ -389,6 +390,35 @@ export function createTuiChat(
   }
   updateTerminalTitle()
 
+  // Shimmer driver: while a streaming step sweeps its thinking titles or a
+  // tool call awaits its result, a timer ticks at one shimmer frame per
+  // requestRender so the bright window moves. The frame index derives from the
+  // runtime clock, so a test harness's fixed `now()` renders every frame
+  // byte-identically even while the timer runs. Defined before `requestRender`
+  // (its first caller: the mount replay) and owned by the channel's shutdown.
+  let shimmerTimer: ReturnType<typeof setInterval> | undefined
+  const shimmerActive = (): boolean => {
+    if (streaming?.hasLiveReasoning() === true) return true
+    for (const card of allToolCards) {
+      if (card.isPending()) return true
+    }
+    return false
+  }
+  const stopShimmerTimer = (): void => {
+    if (shimmerTimer === undefined) return
+    clearInterval(shimmerTimer)
+    shimmerTimer = undefined
+  }
+  const updateShimmerTimer = (): void => {
+    if (!shimmerActive() || disposed) {
+      stopShimmerTimer()
+      return
+    }
+    if (shimmerTimer === undefined) {
+      shimmerTimer = setInterval(() => { requestRender() }, SHIMMER_FRAME_MS)
+    }
+  }
+
   const requestRender = (): void => {
     if (disposed) return
     updatePromptLine()
@@ -396,6 +426,10 @@ export function createTuiChat(
     updateInputBox()
     ui.invalidate()
     ui.requestRender()
+    // The shimmer driver rides every render request: each state change that
+    // could start or end an animation re-evaluates the timer here, and the
+    // tick itself (a requestRender) stops it once nothing sweeps anymore.
+    updateShimmerTimer()
   }
 
   // Resident-transcript accounting: rows are charged their text length and a
@@ -612,6 +646,7 @@ export function createTuiChat(
       resolved.maxDiffEditLength,
       palette,
       mdTheme,
+      now,
     )
     card.setVisibility(toolsVisibility)
     toolCards.set(event.data.callId, card)
@@ -692,7 +727,7 @@ export function createTuiChat(
         let card = toolCards.get(callId)
         if (card === undefined) {
           card = new ToolCardComponent('tool', { value: {}, valid: true }, undefined,
-            resolved.maxToolOutputLines, resolved.maxDiffEditLength, palette, mdTheme)
+            resolved.maxToolOutputLines, resolved.maxDiffEditLength, palette, mdTheme, now)
           card.setVisibility(toolsVisibility)
           chat.addChild(card)
           allToolCards.add(card)
@@ -1076,6 +1111,7 @@ export function createTuiChat(
       disposeSessionEvents()
       removeInputListener()
       stopStatusTimer()
+      stopShimmerTimer()
       disposeStatus()
       disposeInboxClaimed()
       disposeInboxDiscarded()

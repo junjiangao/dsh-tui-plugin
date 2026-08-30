@@ -126,6 +126,87 @@ function messageHeader(label: string, color: (text: string) => string, palette: 
   return palette.bold(palette.underline(color(displayText(label))))
 }
 
+/** Columns of the shimmer's bright window as it sweeps across a dim title. */
+const SHIMMER_WINDOW_COLUMNS = 5
+
+/** Milliseconds of wall clock per shimmer frame; the driver ticks at this rate. */
+export const SHIMMER_FRAME_MS = 120
+
+/**
+ * Derive the shimmer frame index from the runtime clock: one frame per
+ * {@link SHIMMER_FRAME_MS} of wall time. A fixed clock (the test harness's
+ * injected `now`) therefore yields a static sweep, which keeps every render —
+ * snapshots included — byte-deterministic; a live clock advances the sweep.
+ * @param now - The runtime clock getter shared by the channel's components.
+ * @returns The integer frame the title should render at.
+ */
+export function shimmerFrame(now: () => number): number {
+  return Math.floor(now() / SHIMMER_FRAME_MS)
+}
+
+/**
+ * Paint a dim title with an opencode-style shimmer: a
+ * {@link SHIMMER_WINDOW_COLUMNS}-wide bright window cycles left-to-right across
+ * the text (frame `n` puts the window at `n % (columns + window)` columns, so a
+ * beat with the window past the end separates the passes), characters inside
+ * the window render bold on the default foreground, and the rest stay dim.
+ *
+ * Every character is its own complete SGR span. `bold`'s close (`22`) also
+ * clears `dim`'s faint (`2`) — the two intensities must never share a span —
+ * and `dim`'s close also resets the foreground, so a per-character split is the
+ * only composition that cannot clobber a neighbor. `italic` wraps each span
+ * independently: its close (`23`) sits in no intensity or color group, so the
+ * word stays italic in both states.
+ *
+ * @param palette - Active role palette providing `bold`, `dim`, and `italic`.
+ * @param text - Plain title text (already display-escaped by the caller; any
+ *   residual control is escaped again here).
+ * @param frame - Integer frame number selecting the window position.
+ * @param width - Columns the finished row is truncated to.
+ * @returns The finished ANSI row.
+ */
+export function shimmerTitle(palette: Palette, text: string, frame: number, width: number): string {
+  const chars = Array.from(displayText(text))
+  const columns: number[] = []
+  let total = 0
+  for (const char of chars) {
+    columns.push(total)
+    total += visibleWidth(char)
+  }
+  if (total === 0) return ''
+  const period = total + SHIMMER_WINDOW_COLUMNS
+  const start = ((frame % period) + period) % period
+  let row = ''
+  for (let index = 0; index < chars.length; index += 1) {
+    const char = chars[index] as string
+    const column = columns[index] as number
+    row += column >= start && column < start + SHIMMER_WINDOW_COLUMNS
+      ? palette.italic(palette.bold(char))
+      : palette.italic(palette.dim(char))
+  }
+  return truncateToWidth(row, width, '')
+}
+
+/**
+ * A shimmer title row that recomputes on every render call. pi-tui's `Text`
+ * caches rows by width, which would freeze the sweep at whatever frame first
+ * rendered it, so the live titles render through this instead: the row is one
+ * short string per frame, and the owning container never rebuilds for it.
+ */
+class ShimmerTitleComponent implements Component {
+  constructor(
+    private readonly palette: Palette,
+    private readonly title: string,
+    private readonly shimmer: () => number,
+  ) {}
+
+  invalidate(): void {}
+
+  render(width: number): string[] {
+    return [shimmerTitle(this.palette, this.title, this.shimmer(), width)]
+  }
+}
+
 /** Which background bar (if any) paints a block's 1-column left gutter. */
 export type BlockBar = 'none' | 'panel' | 'accent' | 'success' | 'warning' | 'error'
 
@@ -326,6 +407,16 @@ export class UserMessageComponent extends Container {
 }
 
 /**
+ * Live-state knobs for an assistant message still streaming. `streaming` marks
+ * the unsettled step (its thinking titles sweep instead of sitting static) and
+ * `shimmer` supplies the current frame index.
+ */
+interface AssistantLiveState {
+  readonly streaming: boolean
+  readonly shimmer: () => number
+}
+
+/**
  * Children of a settled assistant message: an optional reasoning block (the
  * panel-floored Thinking block, collapsed to a one-row chip or expanded with
  * its muted body), a blank spacer, then the response text as a flat unpainted
@@ -333,7 +424,9 @@ export class UserMessageComponent extends Container {
  * body reads as one continuation of the `Assistant` header. A folded
  * continuation (a later step of a turn while tool cards are hidden) drops the
  * `Assistant` header and renders nothing when it has no visible body, so
- * tool-only steps leave no blank segment behind.
+ * tool-only steps leave no blank segment behind. A live (`streaming`) step
+ * sweeps its thinking titles with {@link shimmerTitle}; a settled one renders
+ * them statically.
  */
 function assistantMessageChildren(
   content: readonly ContentBlock[],
@@ -341,6 +434,7 @@ function assistantMessageChildren(
   foldedContinuation: boolean,
   palette: Palette,
   mdTheme: MarkdownTheme,
+  live?: AssistantLiveState,
 ): Component[] {
   const reasoning = displayText(textBlocks(content, 'reasoning').trim())
   const text = displayText(textBlocks(content, 'text').trim())
@@ -351,17 +445,22 @@ function assistantMessageChildren(
     children.push(new Text(messageHeader('Assistant', palette.accent, palette), 0, 0))
   }
   if (showsReasoning) {
+    // The live step's thinking titles shimmer frame by frame; once the step
+    // settles they render as the static dim chip/title.
+    const title = (marker: string, label: string): Component => live?.streaming === true && live.shimmer !== undefined
+      ? new ShimmerTitleComponent(palette, `${marker} ${label}`, live.shimmer)
+      : new Text(palette.italic(palette.dim(`${marker} ${label}`)), 0, 0)
     const collapsed = reasoningMode === 'collapsed'
     if (collapsed) {
       // A single panel row: the title chip lies on the full-width panel floor.
       const chip = new MessageBlock(palette, { bar: 'panel', paddingY: 0 })
-      chip.addChild(new Text(palette.italic(palette.dim('▸ Thinking')), 0, 0))
+      chip.addChild(title('▸', 'Thinking'))
       children.push(chip)
     } else {
       // The opencode thinking block: panel floor, invisible bar column, an
       // italic dim title, a blank row, then the muted (non-italic) body.
       const block = new MessageBlock(palette, { bar: 'panel' })
-      block.addChild(new Text(palette.italic(palette.dim('▾ Thinking')), 0, 0))
+      block.addChild(title('▾', 'Thinking'))
       block.addChild(new Spacer(1))
       block.addChild(new Markdown(reasoning, 0, 0, mdTheme, { color: value => palette.dim(value) }))
       children.push(block)
@@ -440,7 +539,7 @@ export class StreamingAssistantComponent extends Container {
     readonly position: StepPosition,
     events: () => readonly SessionEvent[],
     tracker: StepTimingTracker,
-    now: () => number,
+    private readonly now: () => number,
     private reasoningMode: ReasoningVisibility,
     private readonly palette: Palette,
     private readonly mdTheme: MarkdownTheme,
@@ -531,6 +630,18 @@ export class StreamingAssistantComponent extends Container {
       || (this.reasoningMode !== 'hidden' && textBlocks(content, 'reasoning').trim() !== '')
   }
 
+  /**
+   * Whether this unsettled step currently renders visible reasoning, so its
+   * thinking titles sweep (the shimmer driver polls this to decide whether the
+   * animation is worth a frame).
+   * @returns `true` while streaming visible reasoning.
+   */
+  hasLiveReasoning(): boolean {
+    return this.settledContent === undefined
+      && this.reasoningMode !== 'hidden'
+      && textBlocks(this.presentedContent(), 'reasoning').trim() !== ''
+  }
+
   /** The settled content when available, otherwise the streamed blocks in model order. */
   private presentedContent(): readonly ContentBlock[] {
     return this.settledContent ?? [...this.blocks.entries()]
@@ -544,12 +655,17 @@ export class StreamingAssistantComponent extends Container {
 
   private rebuild(): void {
     this.clear()
+    // Only the unsettled step sweeps its thinking titles; the settled render
+    // passes no live state so the titles return to their static dim form.
     const children = assistantMessageChildren(
       this.presentedContent(),
       this.reasoningMode,
       this.foldedContinuation,
       this.palette,
       this.mdTheme,
+      this.settledContent === undefined
+        ? { streaming: true, shimmer: () => shimmerFrame(this.now) }
+        : undefined,
     )
     for (const child of children) this.addChild(child)
   }
@@ -579,10 +695,12 @@ export type ToolCardVisibility = 'hidden' | 'collapsed' | 'expanded'
  * would re-wrap its output every frame. Subclasses render through
  * {@link renderLines} and call {@link dropLines} from every state mutator; with
  * `invalidate()` (pi-tui's tree-wide cascade) also dropping, a state change
- * always re-renders.
+ * always re-renders. A subclass whose rows also depend on time (the pending
+ * tool card's shimmering header) contributes a {@link cacheEpoch} value, so the
+ * cache only serves rows rendered in the same animation frame.
  */
 abstract class CachedCardComponent implements Component {
-  private cached: { width: number; lines: string[] } | undefined
+  private cached: { width: number; epoch: unknown; lines: string[] } | undefined
 
   /** Discard the cached rows so the next render recomputes them. */
   protected dropLines(): void {
@@ -593,8 +711,21 @@ abstract class CachedCardComponent implements Component {
     this.cached = undefined
   }
 
+  /**
+   * The cache generation the current rows belong to. Rows rendered for one
+   * epoch are never served for another; the default `undefined` epoch is
+   * permanent, so time-independent cards keep a single width-keyed cache.
+   * @returns The current cache epoch, or `undefined` for a permanent cache.
+   */
+  protected cacheEpoch(): unknown {
+    return undefined
+  }
+
   render(width: number): string[] {
-    if (this.cached?.width !== width) this.cached = { width, lines: this.renderLines(width) }
+    const epoch = this.cacheEpoch()
+    if (this.cached?.width !== width || this.cached.epoch !== epoch) {
+      this.cached = { width, epoch, lines: this.renderLines(width) }
+    }
     return this.cached.lines
   }
 
@@ -629,9 +760,28 @@ export class ToolCardComponent extends CachedCardComponent {
     private readonly maxDiffEditLength: number,
     private readonly palette: Palette,
     private readonly mdTheme: MarkdownTheme,
+    private readonly shimmer?: () => number,
   ) {
     super()
     this.callView = this.presentCall()
+  }
+
+  /**
+   * Whether this call is still awaiting its result and visibly rendered, so
+   * its header sweeps (the shimmer driver polls this).
+   * @returns `true` while the call has no result and the card is not hidden.
+   */
+  isPending(): boolean {
+    return this.result === undefined && this.visibility !== 'hidden'
+  }
+
+  protected override cacheEpoch(): unknown {
+    // While the call is pending the header sweeps frame by frame, so the row
+    // cache only serves one shimmer frame; once settled the epoch is
+    // `undefined` and the cache is permanently valid again.
+    return this.result === undefined && this.shimmer !== undefined
+      ? shimmerFrame(this.shimmer)
+      : undefined
   }
 
   private presentCall(): ToolCallView {
@@ -743,8 +893,21 @@ export class ToolCardComponent extends CachedCardComponent {
       : isError ? this.palette.error : this.palette.success
     const detail = this.headerDetail()
     const headerRest = `${displayText(this.name)}${detail === undefined ? '' : ` / ${displayInlineText(detail)}`}`
+    // A pending call sweeps its header rest: the shimmer's bright window moves
+    // across the dim text while the hollow glyph keeps its warning color, and
+    // the settled header returns to the flat dim (or error-red) span.
+    const headerRestRendered = isError
+      ? this.palette.error(headerRest)
+      : this.result === undefined && this.shimmer !== undefined
+        ? shimmerTitle(
+          this.palette,
+          headerRest,
+          shimmerFrame(this.shimmer),
+          Math.max(1, layout.innerWidth - visibleWidth(glyph) - 1),
+        )
+        : this.palette.dim(headerRest)
     const header = truncateToWidth(
-      `${statusColor(glyph)} ${isError ? this.palette.error(headerRest) : this.palette.dim(headerRest)}`,
+      `${statusColor(glyph)} ${headerRestRendered}`,
       layout.innerWidth,
       '',
     )

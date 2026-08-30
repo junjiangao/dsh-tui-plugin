@@ -45,8 +45,8 @@ function fakeAgent(overrides: Partial<Agent> = {}): Agent {
 describe('target labels', () => {
   it('formats full, compact, and reasoning labels', () => {
     expect(targetLabel({ provider: 'p', model: 'm' })).toBe('p/m')
-    expect(compactTargetLabel({ provider: 'p', model: 'm' })).toBe('m')
-    expect(compactTargetLabel({ provider: 'p', model: 'm', reasoningEffort: 'high' as never })).toBe('m high')
+    expect(compactTargetLabel({ provider: 'p', model: 'm' })).toBe('m [p]')
+    expect(compactTargetLabel({ provider: 'p', model: 'm', reasoningEffort: 'high' as never })).toBe('m [p] high')
   })
 
   it('resolves reasoning display labels', () => {

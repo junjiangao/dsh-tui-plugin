@@ -1,7 +1,7 @@
 terminal 96x36 buffer=normal length=36 base=0 viewport=0
 lifecycle started=1 stopped=0 progress=inactive
 title "DSH snapshot"
-cursor hidden column=8 viewportRow=7 bufferRow=7
+cursor hidden column=2 viewportRow=7 bufferRow=7
 viewport
 0| " DEEPSEEK HARNESS"
   style 1-8 fg=bright-magenta bold
@@ -13,13 +13,13 @@ viewport
 3| <blank>
 4| "/workspace/project  idle                                                                        "
   style 0-23 dim
-5| "idle · ↑0 ↓0 · model deepseek-v4-flash · tools collapsed                                        "
-  style 0-55 dim
-6| "╭─ dsh ────────────────────────────────────────────────────────────── model deepseek-v4-flash ─╮"
+5| "idle · ↑0 ↓0 · deepseek-v4-flash [deepseek-official] · tools collapsed                          "
+  style 0-69 dim
+6| "╭─ dsh ──────────────────────────────────────────────── deepseek-v4-flash [deepseek-official] ─╮"
   style 0-95 fg=bright-magenta
-7| "│ dsh >                                                                                        │"
+7| "│                                                                                              │"
   style 0-0 fg=bright-magenta
-  style 8-8 inverse
+  style 2-2 inverse
   style 95-95 fg=bright-magenta
 8| "╰──────────────────────────────────────────────────────────────────────────────────────────────╯"
   style 0-95 fg=bright-magenta

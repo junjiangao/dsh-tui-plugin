@@ -60,12 +60,12 @@ export function targetLabel(target: ModelSelection): string {
 }
 
 /**
- * Format a target compactly as its model name with any selected effort appended.
+ * Format a target compactly as its model name with the provider in brackets and any selected effort appended.
  * @param target - The LLM target.
- * @returns The compact `model [effort]` label.
+ * @returns The compact `<model> [provider] [effort]` label.
  */
 export function compactTargetLabel(target: ModelSelection): string {
-  return `${target.model}${target.reasoningEffort === undefined ? '' : ` ${target.reasoningEffort}`}`
+  return `${target.model} [${target.provider}]${target.reasoningEffort === undefined ? '' : ` ${target.reasoningEffort}`}`
 }
 
 /**

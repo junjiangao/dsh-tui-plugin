@@ -6,9 +6,9 @@
  * scroll indicators, autocomplete) and draws a full rounded border around it:
  *
  * ```text
- * ╭─ dsh ───────────────── model deepseek-v4-pro ─╮
- * │ dsh > hello                                   │
- * ╰───────────────────────────────────────────────╯
+ * ╭─ dsh ───────────────── deepseek-v4-pro [deepseek-official] ─╮
+ * │ hello                                                       │
+ * ╰─────────────────────────────────────────────────────────────╯
  * ```
  *
  * The border is theme-agnostic: it uses only the standard palette roles
@@ -30,7 +30,7 @@ import type { Palette } from './theme.ts'
 export interface BorderedEditorOptions {
   /** Left label shown in the top border, including its surrounding spaces. */
   leftLabel?: string
-  /** Optional right chip shown in the top border, e.g. `model deepseek-v4-pro`. */
+  /** Optional right chip shown in the top border, e.g. `deepseek-v4-pro [deepseek-official]`. */
   rightLabel?: string
 }
 
@@ -49,7 +49,7 @@ function padRow(line: string, innerWidth: number): string {
  *
  * Format (mirroring the existing status-card title row):
  * - no chip: `╭─ dsh ─────────╮`
- * - chip:    `╭─ dsh ───── model <name> ─╮`
+ * - chip:    `╭─ dsh ───── <name> [<provider>] ─╮`
  *
  * The right chip is truncated with `…` when needed, and dropped entirely when
  * even the truncated chip cannot share the border with two dash runs.

@@ -63,7 +63,7 @@ describe('editor autocomplete in the live channel', () => {
     expect(snapshot).toContain('File · README.md')
     // Tab applies the selected completion into the editor.
     terminal.send('\t')
-    await waitForSnapshot(terminal, snapshot => snapshot.includes('dsh > @src/'))
+    await waitForSnapshot(terminal, snapshot => snapshot.includes('│ @src/'))
     await disposeTuiTestHarness(harness)
     await terminal.dispose()
   })
@@ -143,7 +143,7 @@ describe('editor autocomplete in the live channel', () => {
     const snapshot = await terminal.snapshot({ includeScrollback: true })
     // No completion list for a bare token; the text stays as typed.
     expect(snapshot).not.toContain('File ·')
-    expect(snapshot).toContain('dsh > x')
+    expect(snapshot).toContain('│ x')
     await disposeTuiTestHarness(harness)
     await terminal.dispose()
   })

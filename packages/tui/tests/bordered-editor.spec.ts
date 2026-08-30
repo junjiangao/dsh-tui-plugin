@@ -21,8 +21,8 @@ function createInputBox(color = false, focused = true, columns = 96, rows = 36):
     paddingX: 1,
     frame: 'none',
     prompt: {
-      first: 'dsh > ',
-      continuation: ' '.repeat(6),
+      first: '',
+      continuation: '',
     },
   })
   editor.focused = focused
@@ -44,14 +44,14 @@ describe('composeTopBorder', () => {
 
   it('renders a chip top border without overflowing', () => {
     for (const width of [56, 96]) {
-      const line = composeTopBorder(width, LEFT, 'model deepseek-v4-pro')
+      const line = composeTopBorder(width, LEFT, 'deepseek-v4-pro [deepseek-official]')
       expect(visibleWidth(line)).toBe(width)
-      expect(line).toContain('model deepseek-v4-pro')
+      expect(line).toContain('deepseek-v4-pro [deepseek-official]')
       expect(line.startsWith('╭─ dsh ')).toBe(true)
       expect(line.endsWith('╮')).toBe(true)
     }
     // At width 20 the chip is truncated, but the border still fits exactly.
-    const narrow = composeTopBorder(20, LEFT, 'model deepseek-v4-pro')
+    const narrow = composeTopBorder(20, LEFT, 'deepseek-v4-pro [deepseek-official]')
     expect(visibleWidth(narrow)).toBe(20)
     expect(narrow).toContain('…')
   })
@@ -65,9 +65,9 @@ describe('composeTopBorder', () => {
   it('drops the chip entirely when even a truncated chip cannot fit', () => {
     // At width 8 the left label already consumes most of the border; the chip
     // must be dropped rather than overflowing.
-    const line = composeTopBorder(8, LEFT, 'model deepseek-v4-pro')
+    const line = composeTopBorder(8, LEFT, 'deepseek-v4-pro [deepseek-official]')
     expect(visibleWidth(line)).toBe(8)
-    expect(line).not.toContain('model')
+    expect(line).not.toContain('deepseek-v4-pro')
   })
 
   it('handles an empty left label and very narrow widths without overflowing', () => {
@@ -101,9 +101,9 @@ describe('BorderedEditor', () => {
 
   it('updates the right chip label and keeps the border inside the width', () => {
     const { inputBox } = createInputBox()
-    inputBox.setRightLabel('model deepseek-v4-pro')
+    inputBox.setRightLabel('deepseek-v4-pro [deepseek-official]')
     const line = inputBox.render(96)[0]
-    expect(line).toContain('model deepseek-v4-pro')
+    expect(line).toContain('deepseek-v4-pro [deepseek-official]')
     expect(visibleWidth(line ?? '')).toBe(96)
   })
 

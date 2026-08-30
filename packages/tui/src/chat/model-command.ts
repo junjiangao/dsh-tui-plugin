@@ -134,6 +134,14 @@ export function createModelController(deps: ModelControllerDeps): ModelControlle
       ...reasoningEffort === undefined ? {} : { reasoningEffort },
     }
     resolveContextWindow(selection.current)
+    // Persist the pick as the deployment default so the next startup boots on
+    // it instead of reverting to the first/base model.
+    const defaultModel = ctx.get?.('agentDefaultModel')
+    if (defaultModel !== undefined) {
+      void defaultModel.saveSelection(selection.current).catch((error: unknown) => {
+        ctx.logger.warn(`tui: model selection changed but the default was not saved: ${errorChain(error)}`)
+      })
+    }
     const reasoning = targetReasoningLabel(selected, reasoningEffort)
     deps.appendNotice([
       `Model selected: ${targetLabel(selected)}.`,

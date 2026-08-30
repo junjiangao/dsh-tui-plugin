@@ -124,7 +124,7 @@ describe('mountTui', () => {
     expect(installed.agents[0]?.options).toEqual({ provider: 'settings-provider', model: 'settings-model' })
     // The status footer shows the default selection instead of `model unset`;
     // the configured reasoning effort is part of that initial selection.
-    expect(await terminal.snapshot()).toContain('model settings-model low')
+    expect(await terminal.snapshot()).toContain('settings-model [settings-provider] low')
     await ctx.fiber.dispose()
     await terminal.dispose()
   })

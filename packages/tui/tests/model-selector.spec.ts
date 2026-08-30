@@ -67,7 +67,26 @@ describe('model selector', () => {
       reasoningEffort: 'low',
     })
     // The footer follows the selection.
-    expect(applied).toContain('model deepseek-v4-pro low')
+    expect(applied).toContain('deepseek-v4-pro [deepseek-official] low')
+    await disposeTuiTestHarness(harness)
+    await terminal.dispose()
+  })
+
+  it('persists a picked model as the deployment default', async () => {
+    const { harness, terminal } = await setup()
+    const saved: unknown[] = []
+    harness.ctx.provide('agentDefaultModel', {
+      currentSelection: () => ({ provider: 'deepseek-official', model: 'deepseek-v4-flash' }),
+      saveSelection: async (selection: unknown) => { saved.push(selection) },
+    })
+    await submit(terminal, '/model deepseek-official/deepseek-v4-pro')
+    await waitForSnapshot(terminal, snapshot =>
+      snapshot.includes('Model selected: deepseek-official/deepseek-v4-pro.'))
+    expect(saved).toEqual([{
+      provider: 'deepseek-official',
+      model: 'deepseek-v4-pro',
+      reasoningEffort: 'high',
+    }])
     await disposeTuiTestHarness(harness)
     await terminal.dispose()
   })

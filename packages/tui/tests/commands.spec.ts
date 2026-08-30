@@ -146,7 +146,7 @@ describe('slash commands in the live channel', () => {
     snapshot = await terminal.snapshot({ includeScrollback: true })
     expect(snapshot).toContain('Model selected: deepseek-official/deepseek-v4-pro')
     // The status footer follows the selection, including its default effort.
-    expect(snapshot).toContain('model deepseek-v4-pro high')
+    expect(snapshot).toContain('deepseek-v4-pro [deepseek-official] high')
 
     await submit(terminal, '/resume')
     await terminal.waitForFrame()

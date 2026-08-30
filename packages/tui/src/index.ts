@@ -198,8 +198,8 @@ export function createTuiChat(
     paddingX: 1,
     frame: 'none',
     prompt: {
-      first: displayInlineText('dsh > '),
-      continuation: ' '.repeat(visibleWidth(displayInlineText('dsh > '))),
+      first: '',
+      continuation: '',
     },
   })
   // The editor stays the focus target; this wrapper only draws the rounded
@@ -330,7 +330,7 @@ export function createTuiChat(
       const used = Math.max(0, Math.round(tokenMeter.measure(agent.session).totalTokens))
       segments.push(`${Math.min(100, Math.round(used / contextWindow * 100))}% context`)
     }
-    segments.push(`model ${selection.current === undefined ? 'unset' : compactTargetLabel(selection.current)}`)
+    segments.push(selection.current === undefined ? 'unset' : compactTargetLabel(selection.current))
     segments.push(`tools ${toolsVisibility}`)
     const composed = segments.join(' · ')
     const width = Math.max(1, runtime.terminal.columns)
@@ -345,7 +345,7 @@ export function createTuiChat(
     inputBox.setRightLabel(
       selection.current === undefined
         ? undefined
-        : displayText(`model ${compactTargetLabel(selection.current)}`),
+        : displayText(compactTargetLabel(selection.current)),
     )
   }
 

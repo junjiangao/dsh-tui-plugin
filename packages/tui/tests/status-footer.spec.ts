@@ -98,8 +98,8 @@ describe('status footer and terminal title', () => {
     // re-measures against the new width.
     appendUser(harness.session, 'narrow now')
     const snapshot = await waitForSnapshot(terminal, snapshot =>
-      snapshot.includes('…') && snapshot.includes('model deepseek'))
-    expect(snapshot).toContain('model deepseek…')
+      snapshot.includes('…') && snapshot.includes('deepseek-v4-fl'))
+    expect(snapshot).toContain('deepseek-v4-fl…')
     await disposeTuiTestHarness(harness)
     await terminal.dispose()
   })

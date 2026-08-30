@@ -7,6 +7,7 @@
  * @module @deepseek-ai/dsh-tui
  */
 
+import { spawn } from 'child_process'
 import {
   Container,
   Editor,
@@ -1337,6 +1338,70 @@ function parseModelRoute(value: string | undefined): { provider: string; model: 
   return { provider: value.slice(0, slash), model: value.slice(slash + 1) }
 }
 
+/** The workspace-registry seam the TUI needs; kept structural so the TUI bundle does not hard-depend on dsh-workspace. */
+interface WorkspaceLike {
+  attachSession(sessionId: string): Promise<void>
+}
+
+interface WorkspaceRegistryLike {
+  resolveByPath(path: string): Promise<WorkspaceLike | undefined>
+  create(path: string, title?: string): Promise<WorkspaceLike>
+}
+
+/**
+ * Attach a TUI-created/resumed session to the durable workspace registry used
+ * by the web surface. Without this, the session log exists under the cwd
+ * session directory but never appears in workspace.json, so web cannot list
+ * it under the corresponding workspace.
+ */
+async function attachSessionToWorkspace(ctx: Context, sessionId: string, cwd: string): Promise<void> {
+  const registry = ctx.get('workspaceRegistry') as WorkspaceRegistryLike | undefined
+  if (registry === undefined) return
+  const workspace = await registry.resolveByPath(cwd) ?? await registry.create(cwd)
+  await workspace.attachSession(sessionId)
+}
+
+/** Build the replacement argv for an in-place `/resume`: same dsh invocation, minus stale identity flags, plus the target resume id. */
+function buildResumeArgv(sessionId: string): string[] {
+  const args = process.argv.slice(1)
+  const next: string[] = []
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index] as string
+    if (arg === '--resume' || arg === '--session') {
+      index += 1
+      continue
+    }
+    if (arg.startsWith('--resume=') || arg.startsWith('--session=')) continue
+    next.push(arg)
+  }
+  next.push('--resume', sessionId)
+  return next
+}
+
+/**
+ * Host-owned process handoff for the production TUI: spawn the same dsh
+ * invocation in the target session's workspace, then exit this process so the
+ * child owns the terminal. Rejects only if the child cannot be spawned; once
+ * spawned the current process exits and this promise never settles.
+ */
+function handoffResume(sessionId: string, cwd: string): Promise<never> {
+  return new Promise<never>((_resolve, reject) => {
+    const command = process.argv[0]
+    if (command === undefined) {
+      reject(new Error('tui: cannot determine the node executable for resume handoff'))
+      return
+    }
+    const child = spawn(command, buildResumeArgv(sessionId), {
+      cwd,
+      stdio: 'inherit',
+    })
+    child.once('error', reject)
+    child.once('spawn', () => {
+      process.exit(0)
+    })
+  })
+}
+
 async function run(ctx: Context, config: Config, runtime: TuiRuntime): Promise<void> {
   const startup = ctx.get(TUI_STARTUP_SERVICE)
   // Loader siblings mount concurrently. Await the complete application before
@@ -1412,6 +1477,17 @@ async function run(ctx: Context, config: Config, runtime: TuiRuntime): Promise<v
   modelSelection.current = handle.agent.session.requestHeader() === undefined
     ? defaultSelection ?? initial
     : initial ?? defaultSelection
+  // Keep the web workspace registry in sync: the TUI creates/resumes sessions
+  // outside the web API, so attach them to the durable workspace record here.
+  try {
+    await attachSessionToWorkspace(
+      ctx,
+      String(handle.agent.session.id),
+      handle.agent.session.header.cwd ?? process.cwd(),
+    )
+  } catch (error: unknown) {
+    ctx.logger.warn(`tui: failed to attach session to workspace: ${errorChain(error)}`)
+  }
   ctx.effect(() => {
     const controller = createTuiChat(ctx, config, runtime, handle, modelSelection)
     return () => controller.dispose()
@@ -1506,6 +1582,9 @@ export function apply(ctx: Context, config: Config): void {
     // cwd and the async Git branch probe from the chat helpers.
     formatCwd,
     gitBranch,
+    // /resume hands off by re-executing the same dsh TUI invocation in the
+    // selected session's workspace.
+    handoffResume,
   })
 }
 /* v8 ignore stop */

@@ -45,6 +45,35 @@ describe('mountTui', () => {
     await terminal.dispose()
   })
 
+  it('attaches a fresh session to the workspace registry so web can list it', async () => {
+    const ctx = new Context()
+    await ctx.plugin(SessionStore)
+    await ctx.plugin(AgentRegistry)
+    await mountChannelServices(ctx)
+    installFakeAgentFactory(ctx)
+    const attached: string[] = []
+    const created: string[] = []
+    ctx.provide('workspaceRegistry', {
+      resolveByPath: async () => undefined,
+      create: async (path: string) => {
+        created.push(path)
+        return { attachSession: async (sessionId: string) => { attached.push(sessionId) } }
+      },
+    } as never)
+    const terminal = new HeadlessTerminal(80, 24)
+    const exits: number[] = []
+    mountTui(ctx, { sessionId: 'fresh-session' }, {
+      terminal,
+      exit: code => void exits.push(code),
+    })
+    await terminal.waitForFrame()
+    expect(created).toEqual([process.cwd()])
+    expect(attached).toEqual(['fresh-session'])
+    expect(exits).toEqual([])
+    await ctx.fiber.dispose()
+    await terminal.dispose()
+  })
+
   it('resumes the named session when the startup values carry a resume id', async () => {
     const ctx = new Context()
     await ctx.plugin(SessionStore)

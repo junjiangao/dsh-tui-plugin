@@ -56,6 +56,13 @@
       config:
         backend: json
 
+    # The workspace registry shared with the web surface: it owns the durable
+    # workspace.json index that maps a cwd to its sessions. The TUI attaches
+    # each session it creates/resumes here so web lists TUI conversations in
+    # the same workspace.
+    - id: workspace
+      name: '@deepseek-ai/dsh-workspace'
+
     - id: session-projection-cache
       name: '@deepseek-ai/dsh-session-projection-cache'
       config:

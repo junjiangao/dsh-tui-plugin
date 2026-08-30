@@ -140,9 +140,8 @@ describe('ToolCardComponent', () => {
     ), 6, 1000, palette, mdTheme)
     component.updateResult({ ...resultEvent('result text', true), meta: { verbose: true } })
     const rows = component.render(60).join('\n')
-    expect(rows).toContain('● Tool / tool')
+    expect(rows).toContain(`${palette.error('●')} ${palette.dim('Tool / tool')}`)
     expect(rows).toContain('result text')
-    expect(rows).toContain(palette.error('● Tool / tool'))
   })
 
   it('renders a read card from its structured content', () => {
@@ -200,7 +199,7 @@ describe('ToolCardComponent', () => {
     const rows = component.render(60).join('\n')
     // A terminal result view with no output/status renders just the header:
     // the presenter opted to show nothing, so the raw content is not echoed.
-    expect(rows).toContain('● Tool / bash')
+    expect(rows).toContain(`${palette.success('●')} ${palette.dim('Tool / bash')}`)
     expect(rows).not.toContain('raw output')
     expect(rows).not.toContain('[exit')
     expect(rows).not.toContain('[signal')

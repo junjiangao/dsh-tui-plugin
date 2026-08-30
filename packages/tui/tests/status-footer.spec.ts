@@ -124,6 +124,20 @@ describe('status footer and terminal title', () => {
     await terminal.dispose()
   })
 
+  it('shows the current approval policy in the input border and updates on switch', async () => {
+    const terminal = new HeadlessTerminal(96, 36)
+    const harness = await createTuiTestHarness(terminal, () => {}, {})
+    await terminal.waitForFrame()
+    let snapshot = await terminal.snapshot({ includeScrollback: true })
+    expect(snapshot).toContain('deepseek-v4-flash [deepseek-official] · ask')
+    harness.session.append('approval/policy' as never, { policy: 'never' })
+    await terminal.waitForFrame()
+    snapshot = await terminal.snapshot({ includeScrollback: true })
+    expect(snapshot).toContain('deepseek-v4-flash [deepseek-official] · never')
+    await disposeTuiTestHarness(harness)
+    await terminal.dispose()
+  })
+
   it('updates the terminal title with the session title', async () => {
     const terminal = new HeadlessTerminal(96, 36)
     const harness = await createTuiTestHarness(terminal, () => {}, {

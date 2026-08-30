@@ -124,6 +124,9 @@ function messageHeader(label: string, color: (text: string) => string, palette: 
   return palette.bold(palette.underline(color(displayText(label))))
 }
 
+/** How reasoning blocks render: hidden, collapsed to a header, or expanded. */
+export type ReasoningVisibility = 'hidden' | 'collapsed' | 'expanded'
+
 /**
  * Borderless startup banner: product title, an optional configured subtitle,
  * and the session id. No box frame — each line renders as plain left-padded
@@ -195,26 +198,32 @@ export class UserMessageComponent extends Container {
  */
 function assistantMessageChildren(
   content: readonly ContentBlock[],
-  showReasoning: boolean,
+  reasoningMode: ReasoningVisibility,
   foldedContinuation: boolean,
   palette: Palette,
   mdTheme: MarkdownTheme,
 ): Component[] {
   const reasoning = displayText(textBlocks(content, 'reasoning').trim())
   const text = displayText(textBlocks(content, 'text').trim())
-  const showsReasoning = reasoning !== '' && showReasoning
+  const showsReasoning = reasoning !== '' && reasoningMode !== 'hidden'
   if (foldedContinuation && !showsReasoning && text === '') return []
   const children: Component[] = [new Spacer(1)]
   if (!foldedContinuation) {
     children.push(new Text(messageHeader('Assistant', palette.accent, palette), 0, 0))
   }
   if (showsReasoning) {
+    const collapsed = reasoningMode === 'collapsed'
     children.push(
-      new Text(palette.italic(palette.dim('Reasoning')), 0, 0),
-      new Markdown(reasoning, 0, 0, mdTheme, { color: value => palette.dim(value), italic: true }),
+      new Text(palette.italic(palette.dim(collapsed ? '▸ Thinking' : '▾ Thinking')), 0, 0),
     )
+    if (!collapsed) {
+      children.push(new Markdown(reasoning, 0, 0, mdTheme, { color: value => palette.dim(value), italic: true }))
+    }
   }
-  if (text) children.push(new Markdown(text, 0, 0, mdTheme, { color: value => palette.text(value) }))
+  if (text) {
+    if (!foldedContinuation) children.push(new Text(palette.bold(palette.text('Response')), 0, 0))
+    children.push(new Markdown(text, 0, 0, mdTheme, { color: value => palette.text(value) }))
+  }
   return children
 }
 
@@ -252,8 +261,8 @@ class StepTimingComponent extends Container {
     const totals = this.tracker.totalsAt(this.events(), this.position, this.completionTime ?? this.now())
     const timing = formatTimingTotals(totals, true)
     const header = this.completionTime === undefined
-      ? timing
-      : `${timing} · Completed ${formatCompletionTime(this.completionTime)}`
+      ? `Status · ${timing}`
+      : `Status · ${timing} · Completed ${formatCompletionTime(this.completionTime)}`
     this.addChild(new Text(this.palette.dim(header), 0, 0))
   }
 }
@@ -281,7 +290,7 @@ export class StreamingAssistantComponent extends Container {
     events: () => readonly SessionEvent[],
     tracker: StepTimingTracker,
     now: () => number,
-    private showReasoning: boolean,
+    private reasoningMode: ReasoningVisibility,
     private readonly palette: Palette,
     private readonly mdTheme: MarkdownTheme,
   ) {
@@ -341,11 +350,11 @@ export class StreamingAssistantComponent extends Container {
   }
 
   /**
-   * Toggle whether reasoning blocks render, then re-render.
-   * @param show - Whether to show reasoning blocks.
+   * Set how reasoning blocks render, then re-render.
+   * @param mode - Hidden, collapsed to a header, or expanded.
    */
-  setShowReasoning(show: boolean): void {
-    this.showReasoning = show
+  setReasoningMode(mode: ReasoningVisibility): void {
+    this.reasoningMode = mode
     this.rebuild()
   }
 
@@ -368,7 +377,7 @@ export class StreamingAssistantComponent extends Container {
   hasVisibleBody(): boolean {
     const content = this.presentedContent()
     return textBlocks(content, 'text').trim() !== ''
-      || (this.showReasoning && textBlocks(content, 'reasoning').trim() !== '')
+      || (this.reasoningMode !== 'hidden' && textBlocks(content, 'reasoning').trim() !== '')
   }
 
   /** The settled content when available, otherwise the streamed blocks in model order. */
@@ -386,7 +395,7 @@ export class StreamingAssistantComponent extends Container {
     this.clear()
     const children = assistantMessageChildren(
       this.presentedContent(),
-      this.showReasoning,
+      this.reasoningMode,
       this.foldedContinuation,
       this.palette,
       this.mdTheme,
@@ -547,9 +556,9 @@ export class ToolCardComponent extends CachedCardComponent {
     const visibleBody = unknownXml !== undefined || this.visibility === 'expanded'
       ? body
       : preview(body, this.maxOutputLines, count => this.palette.dim(`… +${count} lines (Ctrl+O to expand)`))
-    // The header is a fixed `Tool / <name>` frame in the status color (warning
-    // pending / success ok / error), flat — no bold or underline, so one color
-    // reads consistently across the whole row.
+    // The header is a fixed `Tool / <name>` frame. Only the leading status
+    // glyph carries the pending/ok/error color; the rest stays dim so the tool
+    // block reads as a supporting block rather than competing with the body.
     const statusColor = this.result === undefined
       ? this.palette.warning
       : isError ? this.palette.error : this.palette.success
@@ -558,10 +567,14 @@ export class ToolCardComponent extends CachedCardComponent {
     // collide with the body lines that follow.
     const desc = this.headerDescription()
     const headerText = `${glyph} Tool / ${displayText(this.name)}${desc === undefined ? '' : ` / ${displayInlineText(desc)}`}`
-    const header = truncateToWidth(headerText, Math.max(1, width - 2), '')
+    const header = truncateToWidth(
+      `${statusColor(glyph)} ${this.palette.dim(headerText.slice(glyph.length + 1))}`,
+      Math.max(1, width - 2),
+      '',
+    )
     // The blank first row is the card's own paragraph gap (no external Spacer),
     // so the hidden state removes the gap together with the card.
-    const lines: string[] = ['', statusColor(header)]
+    const lines: string[] = ['', header]
     if (visibleBody.length > 0) lines.push(...new Text(visibleBody.join('\n'), 0, 0).render(width))
     return lines
   }

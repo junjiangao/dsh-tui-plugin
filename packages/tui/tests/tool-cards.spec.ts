@@ -155,6 +155,10 @@ describe('tool cards in the live channel', () => {
       chunk: { type: 'reasoning-delta', index: 0, text: 'secret reasoning' },
     })
     await terminal.waitForFrame()
+    // Reasoning starts collapsed; expand it once so the assertions below can
+    // see the streamed content before later hiding it with Ctrl+R again.
+    terminal.send('\x12')
+    await terminal.waitForFrame()
     // A multi-line pending body: collapsed preview truncates it, so every
     // Ctrl+O step changes the rendered card and emits a frame deterministically.
     appendToolCall(harness, 'bash', '{"verbose":true,"command":"ls -la","cwd":"/workspace","a":1,"b":2,"c":3,"d":4}')

@@ -13,81 +13,81 @@ buffer
 3| <blank>
 4| "Assistant                                                                                       "
   style 0-8 fg=bright-magenta bold underline
-5| "Model wait 0.0s                                                                                 "
-  style 0-14 dim
+5| "Status · Model wait 0.0s                                                                        "
+  style 0-23 dim
 6| <blank>
-7| "╭─ Session status ────────────────────────────────────────────────────────────────────╮"
+7| "╭─ Session status ────────────────────────────────────────────────────────────────────────╮"
   style 0-2 dim
   style 3-16 fg=bright-magenta bold
-  style 17-86 dim
-8| "│  Session:    main-session                                                           │"
+  style 17-90 dim
+8| "│  Session:    main-session                                                               │"
   style 0-0 dim
   style 3-12 dim
-  style 86-86 dim
-9| "│  Title:      untitled                                                               │"
+  style 90-90 dim
+9| "│  Title:      untitled                                                                   │"
   style 0-0 dim
   style 3-12 dim
-  style 86-86 dim
-10| "│  Directory:  /workspace/project                                                     │"
+  style 90-90 dim
+10| "│  Directory:  /workspace/project                                                         │"
   style 0-0 dim
   style 3-12 dim
-  style 86-86 dim
-11| "│  Model:      deepseek-official/deepseek-v4-pro (effort low; reasoning blocks shown) │"
+  style 90-90 dim
+11| "│  Model:      deepseek-official/deepseek-v4-pro (effort low; reasoning blocks collapsed) │"
   style 0-0 dim
   style 3-12 dim
-  style 49-84 dim
-  style 86-86 dim
-12| "│  Preset:     none                                                                   │"
+  style 49-88 dim
+  style 90-90 dim
+12| "│  Preset:     none                                                                       │"
   style 0-0 dim
   style 3-12 dim
-  style 86-86 dim
-13| "│                                                                                     │"
+  style 90-90 dim
+13| "│                                                                                         │"
   style 0-0 dim
-  style 86-86 dim
-14| "│  Agent:      idle · 2 events · 0 turns · 0 steps · 0 tool calls                     │"
-  style 0-0 dim
-  style 3-12 dim
-  style 86-86 dim
-15| "│                                                                                     │"
-  style 0-0 dim
-  style 86-86 dim
-16| "│  Tokens:     1,250 input + 340 output                                               │"
+  style 90-90 dim
+14| "│  Agent:      idle · 2 events · 0 turns · 0 steps · 0 tool calls                         │"
   style 0-0 dim
   style 3-12 dim
-  style 86-86 dim
-17| "│  KV cache:   [███████████░░░░░] 67% hit (3,000 read + 250 write)                    │"
+  style 90-90 dim
+15| "│                                                                                         │"
+  style 0-0 dim
+  style 90-90 dim
+16| "│  Tokens:     1,250 input + 340 output                                                   │"
+  style 0-0 dim
+  style 3-12 dim
+  style 90-90 dim
+17| "│  KV cache:   [███████████░░░░░] 67% hit (3,000 read + 250 write)                        │"
   style 0-0 dim
   style 3-12 dim
   style 15-15 dim
   style 16-26 fg=bright-magenta
   style 27-32 dim
-  style 86-86 dim
-18| "│  Context:    [█████░░░░░░░░░░░] 33% used (42,000 / 128,000)                         │"
+  style 90-90 dim
+18| "│  Context:    [█████░░░░░░░░░░░] 33% used (42,000 / 128,000)                             │"
   style 0-0 dim
   style 3-12 dim
   style 15-15 dim
   style 16-20 fg=bright-magenta
   style 21-32 dim
-  style 86-86 dim
-19| "│                                                                                     │"
+  style 90-90 dim
+19| "│                                                                                         │"
   style 0-0 dim
-  style 86-86 dim
-20| "│  Created:    2026-07-21 06:32:06 UTC                                                │"
-  style 0-0 dim
-  style 3-12 dim
-  style 86-86 dim
-21| "│  Active:     2026-07-21 06:32:06 UTC                                                │"
+  style 90-90 dim
+20| "│  Created:    2026-07-21 06:32:06 UTC                                                    │"
   style 0-0 dim
   style 3-12 dim
-  style 86-86 dim
-22| "╰─────────────────────────────────────────────────────────────────────────────────────╯"
-  style 0-86 dim
+  style 90-90 dim
+21| "│  Active:     2026-07-21 06:32:06 UTC                                                    │"
+  style 0-0 dim
+  style 3-12 dim
+  style 90-90 dim
+22| "╰─────────────────────────────────────────────────────────────────────────────────────────╯"
+  style 0-90 dim
 23| <blank>
 24| "/workspace/project  idle                                                                        "
   style 0-23 dim
 25| "idle · ↑1.3k ↓340 · cache 67% · 33% context · deepseek-v4-pro [deepseek-official] low · tools c…"
   style 0-95 dim
-26| "╭─ dsh ────────────────────────────────────────────── deepseek-v4-pro [deepseek-official] low ─╮"
+26| "╭─ dsh ──────────────────────────────────────── deepseek-v4-pro [deepseek-official] low · ask ─╮"
   style 0-95 fg=bright-magenta
 27| "│                                                                                              │"
   style 0-0 fg=bright-magenta

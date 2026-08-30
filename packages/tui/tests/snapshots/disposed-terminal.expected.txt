@@ -1,7 +1,7 @@
 terminal 96x36 buffer=normal length=36 base=0 viewport=0
 lifecycle started=1 stopped=1 progress=inactive
 title "DSH snapshot"
-cursor visible column=0 viewportRow=17 bufferRow=17
+cursor visible column=0 viewportRow=18 bufferRow=18
 buffer
 0| " DEEPSEEK HARNESS"
   style 1-8 fg=bright-magenta bold
@@ -17,20 +17,22 @@ buffer
 6| <blank>
 7| "Assistant                                                                                       "
   style 0-8 fg=bright-magenta bold underline
-8| "Done.                                                                                           "
-9| "Model wait 0.0s                                                                                 "
-  style 0-14 dim
-10| <blank>
-11| "/workspace/project  idle                                                                        "
+8| "Response                                                                                        "
+  style 0-7 bold
+9| "Done.                                                                                           "
+10| "Status · Model wait 0.0s                                                                        "
   style 0-23 dim
-12| "idle · ↑0 ↓0 · deepseek-v4-flash [deepseek-official] · tools collapsed                          "
+11| <blank>
+12| "/workspace/project  idle                                                                        "
+  style 0-23 dim
+13| "idle · ↑0 ↓0 · deepseek-v4-flash [deepseek-official] · tools collapsed                          "
   style 0-69 dim
-13| "╭─ dsh ──────────────────────────────────────────────── deepseek-v4-flash [deepseek-official] ─╮"
+14| "╭─ dsh ────────────────────────────────────────── deepseek-v4-flash [deepseek-official] · ask ─╮"
   style 0-95 fg=bright-magenta
-14| "│                                                                                              │"
+15| "│                                                                                              │"
   style 0-0 fg=bright-magenta
   style 2-2 inverse
   style 95-95 fg=bright-magenta
-15| "╰──────────────────────────────────────────────────────────────────────────────────────────────╯"
+16| "╰──────────────────────────────────────────────────────────────────────────────────────────────╯"
   style 0-95 fg=bright-magenta
-16-35| <blank>
+17-35| <blank>

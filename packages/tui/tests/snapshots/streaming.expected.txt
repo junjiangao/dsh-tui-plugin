@@ -17,19 +17,19 @@ viewport
 6| <blank>
 7| "Assistant                                                                                       "
   style 0-8 fg=bright-magenta bold underline
-8| "Reasoning                                                                                       "
-  style 0-8 dim italic
-9| "Inspecting width and styles.                                                                    "
-  style 0-27 dim italic
+8| "▸ Thinking                                                                                      "
+  style 0-9 dim italic
+9| "Response                                                                                        "
+  style 0-7 bold
 10| "Streaming visible state.                                                                        "
-11| "Model wait 1.0s · Thinking 1.0s · Response 2.0s                                                 "
-  style 0-46 dim
+11| "Status · Model wait 2.0s · Thinking 1.0s · Response 2.0s                                        "
+  style 0-55 dim
 12| <blank>
 13| "/workspace/project  running                                                                     "
   style 0-26 dim
-14| "● responding · 5.0s · ↑0 ↓0 · deepseek-v4-flash [deepseek-official] · tools collapsed           "
+14| "● responding · 6.0s · ↑0 ↓0 · deepseek-v4-flash [deepseek-official] · tools collapsed           "
   style 0-84 dim
-15| "╭─ dsh ──────────────────────────────────────────────── deepseek-v4-flash [deepseek-official] ─╮"
+15| "╭─ dsh ────────────────────────────────────────── deepseek-v4-flash [deepseek-official] · ask ─╮"
   style 0-95 fg=bright-magenta
 16| "│                                                                                              │"
   style 0-0 fg=bright-magenta

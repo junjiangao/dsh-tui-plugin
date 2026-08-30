@@ -15,7 +15,7 @@ buffer
   style 0-23 dim
 5| "idle · ↑0 ↓0 · deepseek-v4-flash [deepseek-official] · tools collapsed                          "
   style 0-69 dim
-6| "╭─ dsh ──────────────────────────────────────────────── deepseek-v4-flash [deepseek-official] ─╮"
+6| "╭─ dsh ────────────────────────────────────────── deepseek-v4-flash [deepseek-official] · ask ─╮"
   style 0-95 fg=bright-magenta
 7| "│ @                                                                                            │"
   style 0-0 fg=bright-magenta

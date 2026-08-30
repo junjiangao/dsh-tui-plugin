@@ -51,7 +51,7 @@ viewport
   style 0-23 dim
 25| "idle · ↑0 ↓0 · deepseek-v4-flash [deepseek-official] · tools collapsed                          "
   style 0-69 dim
-26| "╭─ dsh ──────────────────────────────────────────────── deepseek-v4-flash [deepseek-official] ─╮"
+26| "╭─ dsh ────────────────────────────────────────── deepseek-v4-flash [deepseek-official] · ask ─╮"
   style 0-95 fg=bright-magenta
 27| "│                                                                                              │"
   style 0-0 fg=bright-magenta

@@ -41,7 +41,7 @@ import type {} from '@deepseek-ai/dsh-session-title'
 import type {} from '@deepseek-ai/dsh-system-prompt'
 import type {} from '@deepseek-ai/dsh-token-meter'
 import type {} from '@deepseek-ai/dsh-tools'
-import type {} from '@deepseek-ai/dsh-user-approval'
+import { effectiveApprovalPolicy, type ApprovalPolicy } from '@deepseek-ai/dsh-user-approval'
 import type {} from '@deepseek-ai/dsh-user-questions'
 import { createUserMessage, errorChain, type MessageId, type UserMessage } from '@deepseek-ai/dsh-llm'
 import { installModelSelection, type AgentHandle, type ModelSelectionRef } from '@deepseek-ai/dsh-agent'
@@ -59,6 +59,7 @@ import {
   StreamingAssistantComponent,
   ToolCardComponent,
   UserMessageComponent,
+  type ReasoningVisibility,
   type ToolCardVisibility,
 } from './components/transcript.ts'
 import {
@@ -258,7 +259,10 @@ export function createTuiChat(
   let lastCtrlCPressAt = Number.NEGATIVE_INFINITY
   let ctrlCExitHint = false
   let ctrlCExitHintTimer: ReturnType<typeof setTimeout> | undefined
-  let showReasoning = resolved.showReasoning
+  let reasoningMode: ReasoningVisibility = resolved.showReasoning ? 'collapsed' : 'hidden'
+  let approvalPolicy: ApprovalPolicy = effectiveApprovalPolicy(agent.session.events)
+    ?? (ctx as { approval?: { config?: { policy?: ApprovalPolicy } } }).approval?.config?.policy
+    ?? 'ask'
   let toolsVisibility: ToolCardVisibility = 'collapsed'
   let streaming: StreamingAssistantComponent | undefined
   // One shared accumulator serves every step's timing footer; per-footer
@@ -341,11 +345,15 @@ export function createTuiChat(
     )))
   }
 
+  const currentApprovalPolicy = (): ApprovalPolicy => approvalPolicy
+
   const updateInputBox = (): void => {
+    const model = selection.current === undefined ? undefined : compactTargetLabel(selection.current)
+    const permission = currentApprovalPolicy()
     inputBox.setRightLabel(
-      selection.current === undefined
-        ? undefined
-        : displayText(compactTargetLabel(selection.current)),
+      model === undefined
+        ? displayText(permission)
+        : displayText(`${model} · ${permission}`),
     )
   }
 
@@ -527,13 +535,37 @@ export function createTuiChat(
     streaming = undefined
   }
 
+  /**
+   * Keep the live assistant step at the tail of the prompt rows for its step.
+   * The agent loop logs `step/start` before the step's `user/message` rows, so
+   * a newly created streaming component would otherwise appear above the user's
+   * question. Moving it after each prompt row restores chronological order:
+   * question/context first, then the assistant step and its status footer.
+   */
+  const moveStreamingToTail = (): void => {
+    if (streaming === undefined) return
+    for (const child of [streaming, streaming.timing]) {
+      const index = chat.children.indexOf(child)
+      if (index >= 0) chat.children.splice(index, 1)
+    }
+    chat.addChild(streaming)
+    chat.addChild(streaming.timing)
+    // Keep the resident ledger in visual order: the assistant step is now the
+    // tail of this step's prompt rows, so its eviction slot moves behind them.
+    const ledgerIndex = residentOrder.indexOf(streaming)
+    if (ledgerIndex >= 0) {
+      residentOrder.splice(ledgerIndex, 1)
+      residentOrder.push(streaming)
+    }
+  }
+
   const startAssistantStep = (position: StepPosition): void => {
     streaming = new StreamingAssistantComponent(
       position,
       () => agent.session.events,
       stepTimingTracker,
       now,
-      showReasoning,
+      reasoningMode,
       palette,
       mdTheme,
     )
@@ -576,6 +608,7 @@ export function createTuiChat(
           const text = displayText(contentText(event.data.content).trim())
           if (!text) return false
           appendUser(text)
+          moveStreamingToTail()
           return true
         }
         // A session-reference card names the referenced sessions on one dim
@@ -587,6 +620,7 @@ export function createTuiChat(
             0,
             0,
           ))
+          moveStreamingToTail()
           return true
         }
         // Injected context (plugin/goal source) renders as a dim context card,
@@ -598,6 +632,7 @@ export function createTuiChat(
           : typeof labelled.kind === 'string' ? labelled.kind
             : 'context'
         appendContext(label, text)
+        moveStreamingToTail()
         return true
       }
       case 'step/start':
@@ -686,6 +721,10 @@ export function createTuiChat(
       sessionTitle = event.data.title
       header.invalidate()
       updateTerminalTitle()
+    }
+    if (event.type === 'approval/policy') {
+      approvalPolicy = event.data.policy
+      requestRender()
     }
     // Replacement events mutate only the model surface, so the rendered
     // transcript keeps what it already showed; a landed summary checkpoint
@@ -778,15 +817,21 @@ export function createTuiChat(
     )
   }
 
-  const setShowReasoning = (show: boolean): void => {
-    showReasoning = show
-    const set = (step: StreamingAssistantComponent): void => { step.setShowReasoning(showReasoning) }
+  const setReasoningMode = (mode: ReasoningVisibility): void => {
+    reasoningMode = mode
+    const set = (step: StreamingAssistantComponent): void => { step.setReasoningMode(mode) }
     for (const steps of assistantSteps.values()) for (const step of steps) set(step)
-    streaming?.setShowReasoning(showReasoning)
+    streaming?.setReasoningMode(mode)
+  }
+
+  const setShowReasoning = (show: boolean): void => {
+    setReasoningMode(show ? 'expanded' : 'hidden')
   }
 
   const toggleReasoning = (): void => {
-    setShowReasoning(!showReasoning)
+    const cycle: readonly ReasoningVisibility[] = ['hidden', 'collapsed', 'expanded']
+    const index = cycle.indexOf(reasoningMode)
+    setReasoningMode(cycle[(index + 1) % cycle.length] ?? 'expanded')
   }
 
   editor.onSubmit = (text: string): void => {
@@ -1138,7 +1183,7 @@ export function createTuiChat(
         ['Session', displayText(agent.session.id)],
         ['Title', displayText(sessionTitle ?? 'untitled')],
         ['Directory', displayText(cwd)],
-        ['Model', `${model} ${palette.dim(`(effort ${effort}; reasoning blocks ${showReasoning ? 'shown' : 'hidden'})`)}`],
+        ['Model', `${model} ${palette.dim(`(effort ${effort}; reasoning blocks ${reasoningMode})`)}`],
         ['Preset', displayText(ctx.get('agentPresets')?.composedPreset(agent.ctx) ?? 'none')],
       ],
       [

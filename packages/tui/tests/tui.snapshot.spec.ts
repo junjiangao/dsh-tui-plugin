@@ -118,16 +118,16 @@ describe('TUI semantic snapshots', () => {
     const harness = await setupSnapshot()
     await renderAfter(harness, () => {
       clock += 1_000
-      appendUser(harness.session, 'Show the live update.')
-    })
-    await renderAfter(harness, () => {
-      clock += 1_000
       harness.agent.status = 'running'
       emitAgentEvent(harness.ctx, harness.agent, 'agent/status', { status: 'running' })
     })
     await renderAfter(harness, () => {
       clock += 1_000
       appendStepStart(harness.session)
+    })
+    await renderAfter(harness, () => {
+      clock += 1_000
+      appendUser(harness.session, 'Show the live update.')
     })
     await renderAfter(harness, () => {
       clock += 1_000

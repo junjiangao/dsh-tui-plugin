@@ -59,6 +59,18 @@ export interface ResumeController {
   showResume(): void
 }
 
+/**
+ * How many times the preflight re-reads a session whose log looks torn. A
+ * concurrent web surface can transiently expose a complete Zstandard frame
+ * that has not yet received its final JSONL newline; the read is stable at the
+ * filesystem level, so the persistence layer does not retry it. Bounded retries
+ * let the other writer finish before we report the session as unreadable.
+ */
+const RESUME_READ_RETRIES = 3
+
+/** Base delay before the first preflight read retry; each retry doubles it. */
+const RESUME_READ_RETRY_BASE_MS = 150
+
 type TitleResolution = { title?: string; failure?: unknown }
 
 /**
@@ -204,6 +216,33 @@ export function createResumeController(deps: ResumeControllerDeps): ResumeContro
   }
 
   /**
+   * Read the chosen session's full log for preflight, retrying a bounded
+   * number of times when the failure looks like a torn frame from a concurrent
+   * writer. A filesystem-stable read can still observe a complete frame whose
+   * JSONL record was flushed incrementally by another surface; waiting a short
+   * moment lets that writer finish before we give up.
+   */
+  const readSessionEvents = async (
+    query: SessionQueryEngine,
+    sessionId: SessionId,
+  ): Promise<readonly SessionEvent[]> => {
+    let lastError: unknown
+    for (let attempt = 0; attempt < RESUME_READ_RETRIES; attempt += 1) {
+      try {
+        return (await query.readSession(sessionId)).events
+      } catch (error: unknown) {
+        lastError = error
+        const message = errorChain(error)
+        const retriable = message.includes('complete frame contains a torn JSONL record')
+        if (!retriable || attempt === RESUME_READ_RETRIES - 1) throw error
+        await new Promise(resolve => setTimeout(resolve, RESUME_READ_RETRY_BASE_MS * 2 ** attempt))
+      }
+    }
+    /* v8 ignore next -- the loop always throws on the final attempt; this is unreachable */
+    throw lastError
+  }
+
+  /**
    * Re-read every mutable precondition immediately before terminal handoff and
    * resolve the exact identity and workspace the host will re-exec into. This
    * is where the one chosen log is fully read, replay-validated, and checked
@@ -225,9 +264,16 @@ export function createResumeController(deps: ResumeControllerDeps): ResumeContro
     if (candidate.disabledReason !== undefined) throw new Error(candidate.disabledReason)
     let events: readonly SessionEvent[]
     try {
-      events = (await query.readSession(record.header.id)).events
+      events = await readSessionEvents(query, record.header.id)
     } catch (error: unknown) {
-      throw new Error(`session cannot be loaded: ${errorChain(error)}`)
+      const message = errorChain(error)
+      if (message.includes('complete frame contains a torn JSONL record')) {
+        throw new Error(
+          `session cannot be loaded: ${message} `
+          + '(if another dsh surface is still using this session, close it before resuming)',
+        )
+      }
+      throw new Error(`session cannot be loaded: ${message}`)
     }
     const route = resumeRoute(events)
     if (route !== undefined && !ctx.llm.listProviders().some(provider => provider.id === route.provider)) {

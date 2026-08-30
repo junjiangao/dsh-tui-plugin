@@ -220,6 +220,41 @@ describe('resume controller', () => {
     await terminal.dispose()
   })
 
+  it('retries a torn preflight read and resumes once the writer settles', async () => {
+    let calls = 0
+    const handoffs: Array<[string, string]> = []
+    const { harness, terminal } = await setup({
+      runtime: {
+        handoffResume: async (id: string, cwd: string) => {
+          handoffs.push([id, cwd])
+          throw new Error('host returned')
+        },
+      },
+      sessionQuery: sessionQueryStub({
+        readSession: async () => {
+          calls += 1
+          if (calls <= 2) {
+            throw new Error(
+              'failed to inspect session "s-2": corrupt Zstandard session log: '
+              + 'complete frame contains a torn JSONL record',
+            )
+          }
+          return { events: [] }
+        },
+      }),
+    })
+    await openResume(terminal)
+    await waitForSnapshot(terminal, snapshot => snapshot.includes('Untitled session'))
+    terminal.send('\r')
+    const snapshot = await waitForSnapshot(terminal, snapshot =>
+      snapshot.includes('Resume handoff failed: host returned'))
+    expect(snapshot).toContain('Resume handoff failed: host returned')
+    expect(calls).toBe(3)
+    expect(handoffs).toEqual([['s-2', '/workspace']])
+    await disposeTuiTestHarness(harness)
+    await terminal.dispose()
+  })
+
   it('rejects a session whose route is currently unavailable', async () => {
     const { harness, terminal } = await setup({
       sessionQuery: sessionQueryStub({

@@ -58,6 +58,14 @@ export interface Palette {
   code: ColorRole
   /** The one recessed background tone: message-body panels and cards. */
   panel: BackgroundRole
+  /** User-message block bar; the bright background twin of `accent`. */
+  accentBg: BackgroundRole
+  /** Succeeded tool block bar; reserved until tool blocks adopt bars. */
+  successBg: BackgroundRole
+  /** Authorization-pending tool block bar; the bright background twin of `warning`. */
+  warningBg: BackgroundRole
+  /** Failed tool block bar; the bright background twin of `error`. */
+  errorBg: BackgroundRole
   bold: AttributeRole
   italic: AttributeRole
   underline: AttributeRole
@@ -73,7 +81,7 @@ export const COLOR_ROLES = ['text', 'dim', 'accent', 'brand', 'code', 'success',
 export const ATTRIBUTE_ROLES = ['bold', 'italic', 'underline', 'strike', 'selected'] as const
 
 /** Names of the palette's background roles, in the order `/palette` prints them. */
-export const BACKGROUND_ROLES = ['panel'] as const
+export const BACKGROUND_ROLES = ['panel', 'accentBg', 'successBg', 'warningBg', 'errorBg'] as const
 
 /** One role's SGR parameters and the reason it carries them. */
 export interface RoleSpec {
@@ -123,6 +131,13 @@ export function paletteSpec(scheme: TerminalColorScheme): {
       // Bright black (ANSI 100) is a neutral recessed panel in both dark and
       // light terminal themes without leaving the standard 16-color set.
       panel: { open: '100', close: '49', purpose: 'Message-body panels and cards' },
+      // Block bars: the bright background variant of each block state's
+      // foreground color, so a 1-column gutter reads as a fill of that state.
+      // Each close is `49`, resetting only the background group.
+      accentBg: { open: '105', close: '49', purpose: 'User-message block bar' },
+      successBg: { open: '102', close: '49', purpose: 'Succeeded tool block bar' },
+      warningBg: { open: '103', close: '49', purpose: 'Authorization-pending tool block bar' },
+      errorBg: { open: '101', close: '49', purpose: 'Failed tool block bar' },
     },
     attributes: {
       bold: { open: '1', close: '22', purpose: 'Emphasis; composes with any color' },
@@ -304,7 +319,7 @@ export function renderPalette(
   for (const name of COLOR_ROLES) {
     rows.push(head(name, spec.colors[name], palette[name](PALETTE_SAMPLE)), purpose(spec.colors[name]))
   }
-  rows.push('', palette.dim('Backgrounds — one recessed panel tone; compose with any foreground.'))
+  rows.push('', palette.dim('Backgrounds — the panel tone plus per-state block bars; compose with any foreground.'))
   for (const name of BACKGROUND_ROLES) {
     rows.push(head(name, spec.backgrounds[name], palette[name](PALETTE_SAMPLE)), purpose(spec.backgrounds[name]))
   }

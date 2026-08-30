@@ -30,7 +30,7 @@ import type {
 import type { FileDiff } from '@deepseek-ai/dsh-tools'
 import { preview, renderUnknownXml } from './xml-tool-output.ts'
 import { displayInlineText, displayText } from './text.ts'
-import { gradientText, type Palette } from './theme.ts'
+import { gradientText, type BackgroundRole, type Palette } from './theme.ts'
 import { contentText, type ParsedArguments } from './content.ts'
 import {
   formatCompletionTime,
@@ -125,36 +125,125 @@ function messageHeader(label: string, color: (text: string) => string, palette: 
   return palette.bold(palette.underline(color(displayText(label))))
 }
 
+/** Which background bar (if any) paints a block's 1-column left gutter. */
+export type BlockBar = 'none' | 'panel' | 'accent' | 'success' | 'warning' | 'error'
+
+interface MessageBlockOptions {
+  /** Left gutter bar background; `'none'` renders no bar column. Default `'none'`. */
+  bar?: BlockBar
+  /** Paint the body with the panel background. Default `true`. */
+  panel?: boolean
+  /** Horizontal padding columns on each side of the body. Default `2`. */
+  paddingX?: number
+  /** Blank padding rows above and below the body. Default `1`. */
+  paddingY?: number
+}
+
+/** {@link MessageBlockOptions} with every default applied. */
+type BlockOptions = Required<MessageBlockOptions>
+
+/** A block's body placement inside its render width, decided before painting. */
+interface BlockLayout {
+  /** Columns the body is rendered at; paintBlock truncates every row to this. */
+  readonly innerWidth: number
+  /** Left padding columns actually applied, clamped for narrow widths. */
+  readonly padX: number
+}
+
+/** Fill the block defaults. */
+function blockOptions(options: MessageBlockOptions): BlockOptions {
+  const { bar = 'none', panel = true, paddingX = 2, paddingY = 1 } = options
+  return { bar, panel, paddingX, paddingY }
+}
+
 /**
- * A container that paints its children as one recessed background panel. The
- * panel spans the render width, with horizontal and vertical padding, so a
- * message body reads as a distinct block from headers, reasoning, and tool
- * cards. It uses the palette's single `panel` background role, which stays
- * within the standard 16-color ANSI set.
+ * Place a block's body inside `width`. Every non-default form reserves a
+ * 1-column left slot — the visible bar, or the invisible slot that keeps flat
+ * bodies' content column aligned with barred blocks (opencode's 1 border +
+ * 2 padding).
  */
-class BackgroundPanel extends Container {
+function blockLayout(width: number, options: BlockOptions): BlockLayout {
+  const slot = options.bar !== 'none' || !options.panel ? 1 : 0
+  const padX = Math.min(options.paddingX, Math.max(0, Math.floor((width - slot - 1) / 2)))
+  return { padX, innerWidth: Math.max(1, width - slot - padX * 2) }
+}
+
+/** The palette background that paints a block's visible gutter bar. */
+function barBackground(palette: Palette, bar: Exclude<BlockBar, 'none'>): BackgroundRole {
+  if (bar === 'panel') return palette.panel
+  if (bar === 'accent') return palette.accentBg
+  if (bar === 'success') return palette.successBg
+  if (bar === 'warning') return palette.warningBg
+  return palette.errorBg
+}
+
+/**
+ * Paint body rows as one message block across `width` columns. `body` is
+ * already rendered at `layout.innerWidth`; painting truncates each row to it,
+ * applies the padding, and emits the bar/panel spans. Pure so the tool card's
+ * cached rows can paint through it without a Container.
+ */
+function paintBlock(
+  palette: Palette,
+  body: readonly string[],
+  width: number,
+  layout: BlockLayout,
+  options: BlockOptions,
+): string[] {
+  if (body.length === 0) return []
+  const rows: string[] = []
+  if (!options.panel) {
+    // Flat bodies emit no SGR and no row-end padding, so a drag-select copies
+    // the text verbatim; child rows may arrive padded to `innerWidth`, so the
+    // padding is stripped. The gutter's bar slot plus padding keeps the content
+    // column aligned with barred blocks.
+    const indent = ' '.repeat(layout.padX + 1)
+    for (let index = 0; index < options.paddingY; index += 1) rows.push('')
+    for (const line of body) {
+      const row = `${indent}${truncateToWidth(line, layout.innerWidth, '')}`.replace(/\s+$/u, '')
+      rows.push(truncateToWidth(row, width, ''))
+    }
+    for (let index = 0; index < options.paddingY; index += 1) rows.push('')
+    return rows
+  }
+  const bar = options.bar === 'none' ? undefined : barBackground(palette, options.bar)
+  const panelWidth = Math.max(0, width - (bar === undefined ? 0 : 1))
+  const paint = (content: string): string => {
+    const panel = palette.panel(content + ' '.repeat(Math.max(0, panelWidth - visibleWidth(content))))
+    const row = bar === undefined ? panel : `${bar(' ')}${panel}`
+    // A bar column leaves no room for a 1-column body at degenerate widths;
+    // clamp the composed row back to `width` (a no-op once it fits).
+    return bar === undefined ? row : truncateToWidth(row, width, '')
+  }
+  for (let index = 0; index < options.paddingY; index += 1) rows.push(paint(''))
+  for (const line of body) {
+    rows.push(paint(`${' '.repeat(layout.padX)}${truncateToWidth(line, layout.innerWidth, '')}`))
+  }
+  for (let index = 0; index < options.paddingY; index += 1) rows.push(paint(''))
+  return rows
+}
+
+/**
+ * The unified container for the transcript's message blocks (user message,
+ * assistant body, reasoning; tool cards reuse {@link paintBlock} without a
+ * Container). A block is an optional 1-column background bar in the left
+ * gutter, the recessed panel background behind the body, and shared padding,
+ * so every block indents, truncates, and spaces identically. Callers use the
+ * default form (panel, no bar) today; the bar and flat forms arrive with the
+ * phases that migrate each block onto it.
+ */
+class MessageBlock extends Container {
   constructor(
     private readonly palette: Palette,
-    private readonly paddingX = 2,
-    private readonly paddingY = 1,
+    private readonly options: MessageBlockOptions = {},
   ) {
     super()
   }
 
   override render(width: number): string[] {
-    const padX = Math.min(this.paddingX, Math.max(0, Math.floor((width - 1) / 2)))
-    const innerWidth = Math.max(1, width - padX * 2)
-    const body = super.render(innerWidth)
-    if (body.length === 0) return []
-    const padRow = (line: string): string => {
-      const content = `${' '.repeat(padX)}${truncateToWidth(line, innerWidth, '')}`
-      return this.palette.panel(content + ' '.repeat(Math.max(0, width - visibleWidth(content))))
-    }
-    const rows: string[] = []
-    for (let index = 0; index < this.paddingY; index += 1) rows.push(this.palette.panel(' '.repeat(width)))
-    for (const line of body) rows.push(padRow(line))
-    for (let index = 0; index < this.paddingY; index += 1) rows.push(this.palette.panel(' '.repeat(width)))
-    return rows
+    const options = blockOptions(this.options)
+    const layout = blockLayout(width, options)
+    return paintBlock(this.palette, super.render(layout.innerWidth), width, layout, options)
   }
 }
 
@@ -217,7 +306,7 @@ export class UserMessageComponent extends Container {
   constructor(text: string, palette: Palette, mdTheme: MarkdownTheme, label = 'You') {
     super()
     this.addChild(new Text(messageHeader(label, palette.accent, palette), 0, 0))
-    const body = new BackgroundPanel(palette)
+    const body = new MessageBlock(palette)
     body.addChild(new Markdown(displayText(text), 0, 0, mdTheme, { color: value => palette.text(value) }, {
       preserveOrderedListMarkers: true,
       preserveBackslashEscapes: true,
@@ -258,7 +347,7 @@ function assistantMessageChildren(
   }
   if (text) {
     if (!foldedContinuation) children.push(new Text(palette.bold(palette.text('Response')), 0, 0))
-    const body = new BackgroundPanel(palette)
+    const body = new MessageBlock(palette)
     body.addChild(new Markdown(text, 0, 0, mdTheme, { color: value => palette.text(value) }))
     children.push(body)
   }
